@@ -1,0 +1,25 @@
+name: Build Android APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: |
+          cd trachtenberg_flutter
+          flutter pub get
+          flutter build apk --release
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: trachtenberg_flutter/build/app/outputs/flutter-apk/app-release.apk
+          generate_release_notes: true

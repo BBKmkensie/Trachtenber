@@ -1,4 +1,16 @@
-# 🧮 Método Trachtenberg - Aplicación de Escritorio
+# 🧮 Método Trachtenberg
+
+## 📱 Descargar app Android (APK)
+
+**Instala directamente en tu móvil** (activa *Orígenes desconocidos* / *Instalar apps desconocidas* si el sistema lo pide):
+
+| Versión | Enlace |
+|---------|--------|
+| **1.0.0** | [Descargar Trachtenberg-1.0.0.apk](https://github.com/BBKmkensie/Trachtenber/raw/main/releases/Trachtenberg-1.0.0.apk) |
+
+También en **[Releases](https://github.com/BBKmkensie/Trachtenber/releases)** (versiones futuras con etiqueta `v1.0.0`, etc.).
+
+---
 
 Aplicación para practicar cálculo mental con el **Método Trachtenberg**:
 
