@@ -89,13 +89,16 @@ class _RootRouter extends StatelessWidget {
             ? page
             : LayoutBuilder(
                 builder: (context, constraints) {
+                  final compact = AppTheme.isCompact(context);
                   return Align(
                     alignment: Alignment.center,
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
-                        maxWidth: narrow ? 600 : 800,
+                        maxWidth: compact
+                            ? constraints.maxWidth
+                            : (narrow ? 600 : 800),
                         maxHeight: constraints.maxHeight,
-                        minHeight: tallCard ? constraints.maxHeight : 0,
+                        minHeight: (compact || tallCard) ? constraints.maxHeight : 0,
                       ),
                       child: page,
                     ),

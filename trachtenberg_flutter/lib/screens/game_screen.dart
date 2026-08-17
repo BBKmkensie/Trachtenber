@@ -17,6 +17,55 @@ class GameScreen extends StatelessWidget {
     final num2Str = state.question.num2.toString();
     final blocked = state.hasIncorrectFeedback;
     final suggestions = getMnemotecniaSuggestions(state.userAnswer);
+    final compact = AppTheme.isCompact(context);
+    final screenH = MediaQuery.sizeOf(context).height;
+    final keypadH = compact ? (screenH * 0.30).clamp(188.0, 248.0) : 290.0;
+
+    final problem = LayoutBuilder(
+      builder: (context, constraints) {
+        final eqWidth = constraints.maxWidth - (compact ? 24 : 40);
+        final body = Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _equation(num1Str, num2Str, state, eqWidth),
+            if (state.feedback.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                state.feedback,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.none,
+                  fontSize: compact ? 13 : 16,
+                  color: state.feedback.contains('Incorrecto')
+                      ? const Color(0xFFef4444)
+                      : state.feedback.contains('Correcto')
+                          ? const Color(0xFF22c55e)
+                          : AppTheme.textDark,
+                ),
+              ),
+            ],
+            if (suggestions.recent.isNotEmpty || suggestions.all.isNotEmpty) ...[
+              SizedBox(height: compact ? 10 : 16),
+              _suggestions(suggestions, compact: compact),
+            ],
+          ],
+        );
+        if (compact) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+            child: body,
+          );
+        }
+        return Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(minHeight: 260),
+          padding: const EdgeInsets.fromLTRB(20, 30, 20, 30),
+          alignment: Alignment.center,
+          child: body,
+        );
+      },
+    );
 
     return Theme(
       data: ThemeData(
@@ -25,85 +74,65 @@ class GameScreen extends StatelessWidget {
         fontFamily: 'Segoe UI',
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(compact ? 8 : 20),
         child: Material(
           color: AppTheme.gameBeige,
           elevation: 12,
           shadowColor: Colors.black54,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(compact ? 12 : 20),
           clipBehavior: Clip.antiAlias,
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: compact ? MainAxisSize.max : MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 15, 20, 15),
+                padding: EdgeInsets.fromLTRB(compact ? 8 : 20, compact ? 8 : 15, compact ? 8 : 20, compact ? 8 : 15),
                 child: Row(
                   children: [
-                    _hdrBtn('ATRÁS', AppTheme.backRed, blocked ? null : state.stopGame),
-                    const SizedBox(width: 10),
+                    Flexible(
+                      flex: 2,
+                      child: _hdrBtn(
+                        'ATRÁS',
+                        AppTheme.backRed,
+                        blocked ? null : state.stopGame,
+                        compact: compact,
+                      ),
+                    ),
+                    SizedBox(width: compact ? 6 : 10),
                     Expanded(
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 200),
-                          child: _hdrBtn(
-                            'mnemotecnia',
-                            Colors.white,
-                            blocked ? null : state.showMnemotecnia,
-                            fg: AppTheme.textDark,
-                            border: AppTheme.pink,
-                            expand: true,
-                          ),
-                        ),
+                      flex: 3,
+                      child: _hdrBtn(
+                        compact ? 'mnem.' : 'mnemotecnia',
+                        Colors.white,
+                        blocked ? null : state.showMnemotecnia,
+                        fg: AppTheme.textDark,
+                        border: AppTheme.pink,
+                        expand: true,
+                        compact: compact,
                       ),
                     ),
                     if (state.gameMode == GameMode.tables112) ...[
-                      const SizedBox(width: 10),
-                      _hdrBtn('REGLA', const Color(0xFF1e40af), state.showRule),
+                      SizedBox(width: compact ? 6 : 10),
+                      Flexible(
+                        flex: 2,
+                        child: _hdrBtn('REGLA', const Color(0xFF1e40af), state.showRule, compact: compact),
+                      ),
                     ],
-                    const SizedBox(width: 10),
-                    _hdrBtn('RESOLVER', AppTheme.solveGreen, blocked ? null : state.showSolution),
+                    SizedBox(width: compact ? 6 : 10),
+                    Flexible(
+                      flex: 2,
+                      child: _hdrBtn(
+                        'RESOLVER',
+                        AppTheme.solveGreen,
+                        blocked ? null : state.showSolution,
+                        compact: compact,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final eqWidth = constraints.maxWidth - 40;
-                  return Container(
-                    width: double.infinity,
-                    constraints: const BoxConstraints(minHeight: 260),
-                    padding: const EdgeInsets.fromLTRB(20, 30, 20, 30),
-                    alignment: Alignment.center,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _equation(num1Str, num2Str, state, eqWidth),
-                        if (state.feedback.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            state.feedback,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              decoration: TextDecoration.none,
-                              color: state.feedback.contains('Incorrecto')
-                                  ? const Color(0xFFef4444)
-                                  : state.feedback.contains('Correcto')
-                                      ? const Color(0xFF22c55e)
-                                      : AppTheme.textDark,
-                            ),
-                          ),
-                        ],
-                        if (suggestions.recent.isNotEmpty || suggestions.all.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          _suggestions(suggestions),
-                        ],
-                      ],
-                    ),
-                  );
-                },
-              ),
+              if (compact) Expanded(child: problem) else problem,
               SizedBox(
-                height: 290,
+                height: keypadH,
                 width: double.infinity,
                 child: NumericKeypad(onKey: state.keypadInput),
               ),
@@ -121,6 +150,7 @@ class GameScreen extends StatelessWidget {
     Color fg = Colors.white,
     Color? border,
     bool expand = false,
+    bool compact = false,
   }) {
     final btn = TextButton(
       onPressed: onTap,
@@ -128,19 +158,27 @@ class GameScreen extends StatelessWidget {
         backgroundColor: bg,
         foregroundColor: fg,
         disabledForegroundColor: fg.withOpacity(0.5),
-        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 8 : 25,
+          vertical: compact ? 8 : 10,
+        ),
         minimumSize: const Size(0, 0),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        side: border != null ? BorderSide(color: border, width: 3) : BorderSide.none,
+        side: border != null ? BorderSide(color: border, width: compact ? 2 : 3) : BorderSide.none,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 16,
-          letterSpacing: 0.5,
-          color: fg,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: compact ? 13 : 16,
+            letterSpacing: compact ? 0.2 : 0.5,
+            color: fg,
+          ),
         ),
       ),
     );
@@ -165,7 +203,7 @@ class GameScreen extends StatelessWidget {
           rhsGaps * gap;
     }
 
-    var font = (avail * 0.68 / units).clamp(12.8, 30.4);
+    var font = (avail * 0.68 / units).clamp(12.8, avail < 420 ? 24.0 : 30.4);
     var slot = font * 1.15;
     var gap = font * 0.22;
     while (font > 12.8 && widthOf(slot, gap) > avail) {
@@ -192,10 +230,13 @@ class GameScreen extends StatelessWidget {
     );
   }
 
-  Widget _suggestions(({List<MnemSuggestion> recent, List<MnemSuggestion> all}) suggestions) {
+  Widget _suggestions(
+    ({List<MnemSuggestion> recent, List<MnemSuggestion> all}) suggestions, {
+    bool compact = false,
+  }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(compact ? 8 : 14),
       decoration: BoxDecoration(
         color: const Color(0xFFfff0f5),
         border: Border.all(color: AppTheme.pink, width: 2),
@@ -203,39 +244,47 @@ class GameScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Text(
+          Text(
             '💡 Sugerencias Mnemotécnicas:',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppTheme.pinkDeep, fontWeight: FontWeight.w600, fontSize: 16),
+            style: TextStyle(
+              color: AppTheme.pinkDeep,
+              fontWeight: FontWeight.w600,
+              fontSize: compact ? 13 : 16,
+            ),
           ),
           if (suggestions.recent.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: compact ? 8 : 12),
             Wrap(
-              spacing: 12,
-              runSpacing: 12,
+              spacing: compact ? 8 : 12,
+              runSpacing: compact ? 8 : 12,
               alignment: WrapAlignment.center,
-              children: suggestions.recent.map(_recentCard).toList(),
+              children: suggestions.recent.map((s) => _recentCard(s, compact: compact)).toList(),
             ),
           ],
           if (suggestions.all.isNotEmpty) ...[
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: EdgeInsets.symmetric(vertical: compact ? 8 : 14),
               child: CustomPaint(
                 painter: _DashedLinePainter(color: AppTheme.pink),
                 child: const SizedBox(width: double.infinity, height: 2),
               ),
             ),
-            const Text(
+            Text(
               'Todas las palabras (de izquierda a derecha):',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppTheme.pinkDeep, fontWeight: FontWeight.w600, fontSize: 14),
+              style: TextStyle(
+                color: AppTheme.pinkDeep,
+                fontWeight: FontWeight.w600,
+                fontSize: compact ? 12 : 14,
+              ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: compact ? 8 : 12),
             Wrap(
-              spacing: 10,
-              runSpacing: 10,
+              spacing: 8,
+              runSpacing: 8,
               alignment: WrapAlignment.center,
-              children: suggestions.all.map(_allCard).toList(),
+              children: suggestions.all.map((s) => _allCard(s, compact: compact)).toList(),
             ),
           ],
         ],
@@ -243,10 +292,10 @@ class GameScreen extends StatelessWidget {
     );
   }
 
-  Widget _recentCard(MnemSuggestion s) {
+  Widget _recentCard(MnemSuggestion s, {bool compact = false}) {
     final pair = s.type == 'pair';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12, vertical: compact ? 6 : 10),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: pair ? AppTheme.pinkDeep : AppTheme.pink, width: 2),
@@ -257,8 +306,8 @@ class GameScreen extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            constraints: const BoxConstraints(minWidth: 40),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            constraints: BoxConstraints(minWidth: compact ? 28 : 40),
+            padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8, vertical: compact ? 4 : 6),
             decoration: BoxDecoration(
               color: const Color(0xFFfff0f5),
               borderRadius: BorderRadius.circular(5),
@@ -266,18 +315,36 @@ class GameScreen extends StatelessWidget {
             child: Text(
               '${s.number}',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppTheme.pinkDeep, fontWeight: FontWeight.w800, fontSize: 22),
+              style: TextStyle(
+                color: AppTheme.pinkDeep,
+                fontWeight: FontWeight.w800,
+                fontSize: compact ? 16 : 22,
+              ),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: compact ? 6 : 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(s.objeto, style: const TextStyle(color: AppTheme.pinkDeep, fontWeight: FontWeight.w600, fontSize: 16)),
-              Text(s.accion, style: const TextStyle(color: Color(0xFF666666), fontSize: 13, fontStyle: FontStyle.italic)),
+              Text(
+                s.objeto,
+                style: TextStyle(
+                  color: AppTheme.pinkDeep,
+                  fontWeight: FontWeight.w600,
+                  fontSize: compact ? 13 : 16,
+                ),
+              ),
+              Text(
+                s.accion,
+                style: TextStyle(
+                  color: const Color(0xFF666666),
+                  fontSize: compact ? 11 : 13,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
             ],
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: compact ? 6 : 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
@@ -286,7 +353,11 @@ class GameScreen extends StatelessWidget {
             ),
             child: Text(
               s.type == 'single' ? '1 dígito' : '2 dígitos',
-              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: compact ? 10 : 11,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -294,10 +365,10 @@ class GameScreen extends StatelessWidget {
     );
   }
 
-  Widget _allCard(MnemSuggestion s) {
+  Widget _allCard(MnemSuggestion s, {bool compact = false}) {
     return Container(
-      width: 110,
-      padding: const EdgeInsets.all(8),
+      width: compact ? 88 : 110,
+      padding: EdgeInsets.all(compact ? 6 : 8),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: AppTheme.pink),
@@ -305,9 +376,30 @@ class GameScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text('${s.number}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.pinkDeep, fontSize: 18)),
-          Text(s.objeto, style: const TextStyle(color: AppTheme.pinkDeep, fontSize: 13, fontWeight: FontWeight.w600)),
-          Text(s.accion, style: const TextStyle(color: Color(0xFF666666), fontSize: 12, fontStyle: FontStyle.italic)),
+          Text(
+            '${s.number}',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppTheme.pinkDeep,
+              fontSize: compact ? 15 : 18,
+            ),
+          ),
+          Text(
+            s.objeto,
+            style: TextStyle(
+              color: AppTheme.pinkDeep,
+              fontSize: compact ? 12 : 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Text(
+            s.accion,
+            style: TextStyle(
+              color: const Color(0xFF666666),
+              fontSize: compact ? 11 : 12,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
         ],
       ),
     );

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 class AppCard extends StatelessWidget {
   final Widget child;
   final Color? color;
@@ -16,10 +18,11 @@ class AppCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = AppTheme.isCompact(context);
     return Container(
       width: double.infinity,
-      height: expand ? double.infinity : null,
-      margin: const EdgeInsets.all(16),
+      height: expand || compact ? double.infinity : null,
+      margin: EdgeInsets.all(compact ? 8 : 16),
       child: Material(
         color: color ?? const Color(0xF2f0f0f0),
         elevation: 10,
@@ -81,6 +84,7 @@ class BackChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = AppTheme.isCompact(context);
     return Align(
       alignment: Alignment.centerLeft,
       child: TextButton(
@@ -88,12 +92,19 @@ class BackChip extends StatelessWidget {
         style: TextButton.styleFrom(
           backgroundColor: const Color(0xFF8B0000),
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 14 : 25,
+            vertical: compact ? 8 : 10,
+          ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
         ),
-        child: const Text(
+        child: Text(
           'ATRÁS',
-          style: TextStyle(fontWeight: FontWeight.w600, letterSpacing: 0.5, fontSize: 16),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+            fontSize: compact ? 13 : 16,
+          ),
         ),
       ),
     );

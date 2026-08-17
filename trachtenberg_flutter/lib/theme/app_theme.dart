@@ -45,4 +45,9 @@ class AppTheme {
           colors: [darkBgStart, darkBgEnd],
         ),
       );
+
+  /// Teléfono / pantalla estrecha (p. ej. Moto G53 6.8").
+  static bool isCompact(BuildContext context) {
+    return MediaQuery.sizeOf(context).shortestSide < 600;
+  }
 }

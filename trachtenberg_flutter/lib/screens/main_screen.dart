@@ -11,17 +11,23 @@ class MainScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final compact = AppTheme.isCompact(context);
     return AppCard(
       expand: true,
-      padding: const EdgeInsets.fromLTRB(28, 28, 28, 24),
+      padding: EdgeInsets.fromLTRB(
+        compact ? 16 : 28,
+        compact ? 16 : 28,
+        compact ? 16 : 28,
+        compact ? 16 : 24,
+      ),
       child: Column(
         children: [
-          const Text(
+          Text(
             'TOTAL MULTIPLICACIONES RESUELTAS',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF666666),
-              fontSize: 13,
+              color: const Color(0xFF666666),
+              fontSize: compact ? 11 : 13,
               letterSpacing: 1,
               decoration: TextDecoration.none,
             ),

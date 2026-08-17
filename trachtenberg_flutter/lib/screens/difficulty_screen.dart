@@ -11,40 +11,41 @@ class DifficultyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.read<AppState>();
+    final compact = AppTheme.isCompact(context);
     return AppCard(
       padding: EdgeInsets.zero,
       child: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(40, 20, 40, 40),
+            padding: EdgeInsets.fromLTRB(compact ? 16 : 40, compact ? 12 : 20, compact ? 16 : 40, compact ? 16 : 40),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: compact ? MainAxisSize.max : MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: 60, bottom: 50),
+                Padding(
+                  padding: EdgeInsets.only(top: compact ? 44 : 60, bottom: compact ? 20 : 50),
                   child: Text(
                     'Elegir Dificultad',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 29,
+                      fontSize: compact ? 22 : 29,
                       fontWeight: FontWeight.w600,
                       color: AppTheme.textDark,
                       decoration: TextDecoration.none,
                     ),
                   ),
                 ),
-                _opt('FÁCIL', () => state.selectDifficulty(Difficulty.facil)),
+                _opt('FÁCIL', () => state.selectDifficulty(Difficulty.facil), compact),
                 const SizedBox(height: 2),
-                _opt('MEDIO', () => state.selectDifficulty(Difficulty.medio)),
+                _opt('MEDIO', () => state.selectDifficulty(Difficulty.medio), compact),
                 const SizedBox(height: 2),
-                _opt('DIFÍCIL', () => state.selectDifficulty(Difficulty.dificil)),
+                _opt('DIFÍCIL', () => state.selectDifficulty(Difficulty.dificil), compact),
               ],
             ),
           ),
           Positioned(
-            top: 20,
-            left: 20,
+            top: compact ? 12 : 20,
+            left: compact ? 12 : 20,
             child: BackChip(onPressed: () => state.goTo(AppScreen.main)),
           ),
         ],
@@ -52,27 +53,43 @@ class DifficultyScreen extends StatelessWidget {
     );
   }
 
-  Widget _opt(String label, VoidCallback onTap) {
-    return Material(
+  Widget _opt(String label, VoidCallback onTap, bool compact) {
+    final button = Material(
       color: AppTheme.menuDark,
       child: InkWell(
         onTap: onTap,
         hoverColor: const Color(0xFF555555),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 21,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1,
-              decoration: TextDecoration.none,
-            ),
-          ),
-        ),
+        child: compact
+            ? Center(
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+              )
+            : Padding(
+                padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 21,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+              ),
       ),
     );
+    if (!compact) return button;
+    return Expanded(child: button);
   }
 }

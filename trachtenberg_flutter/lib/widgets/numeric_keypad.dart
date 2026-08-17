@@ -35,15 +35,20 @@ class NumericKeypad extends StatelessWidget {
                                 child: InkWell(
                                   onTap: () => onKey(k),
                                   hoverColor: const Color(0xFF555555),
-                                  child: Center(
-                                    child: Text(
-                                      k,
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
+                                  child: LayoutBuilder(
+                                    builder: (context, c) {
+                                      final fs = (c.maxHeight * 0.38).clamp(16.0, 24.0);
+                                      return Center(
+                                        child: Text(
+                                          k,
+                                          style: TextStyle(
+                                            fontSize: fs,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
                               ),
