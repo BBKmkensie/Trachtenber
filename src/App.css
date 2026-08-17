@@ -724,6 +724,7 @@
   padding: 0;
   background: #ebe6dc;
   color: #333;
+  overflow: hidden;
 }
 
 .ut-header {
@@ -1079,6 +1080,9 @@
   background: #ebe6dc;
   padding: 30px 20px;
   min-height: 200px;
+  min-width: 0;
+  overflow: hidden;
+  container-type: inline-size;
 }
 
 .multiplication-problem {
@@ -1095,8 +1099,10 @@
 
 .problem-digit {
   color: #333;
-  min-width: 30px;
+  min-width: 1.15em;
+  width: 1.15em;
   text-align: center;
+  display: inline-block;
 }
 
 .problem-operator {
@@ -1114,15 +1120,17 @@
 .ut-game-equation {
   display: flex;
   flex-direction: row;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.55rem;
+  flex-wrap: nowrap;
+  gap: 0.35em;
   margin-bottom: 8px;
-  padding: 8px 12px 0;
+  padding: 8px 4px 0;
+  max-width: 100%;
+  box-sizing: border-box;
   font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Consolas, monospace;
   font-variant-numeric: tabular-nums;
-  font-size: clamp(1.5rem, 4.5vw, 1.9rem);
+  font-size: clamp(0.8rem, calc(68cqi / var(--eq-units, 8)), 1.9rem);
   font-weight: 600;
 }
 
@@ -1130,14 +1138,16 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .ut-game-lhs-digits {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
-  justify-content: center;
+  gap: 0.22em;
+  justify-content: flex-end;
 }
 
 .ut-game-lhs-rule {
@@ -1145,27 +1155,37 @@
   height: 0;
   border: none;
   border-bottom: 2px solid #333;
-  margin-top: 10px;
+  margin-top: 6px;
+}
+
+.ut-game-rhs-block {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35em;
+  flex-shrink: 0;
+  align-self: flex-start;
 }
 
 .ut-game-op {
-  margin: 0 0 2px 0;
+  margin: 0;
   flex-shrink: 0;
+  min-width: 1.5rem;
+  text-align: center;
 }
 
 .ut-game-rhs {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 2px;
+  gap: 0.22em;
 }
 
 .answer-field-container {
   display: flex;
-  justify-content: center;
+  justify-content: stretch;
   align-items: center;
-  margin-top: 16px;
+  margin-top: 10px;
   padding-left: 0;
   width: 100%;
 }
@@ -1173,19 +1193,24 @@
 .answer-digits-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 1.8rem;
+  justify-content: flex-end;
+  gap: 0.22em;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: inherit;
   font-weight: 600;
-  min-height: 80px;
+  min-height: 2.5em;
   background: white;
   border: 3px solid #333;
   border-radius: 5px;
-  padding: 0 8px;
+  padding: 0 0.2em;
 }
 
 .answer-digit {
   color: #333;
-  min-width: 30px;
+  min-width: 1.15em;
+  width: 1.15em;
   text-align: center;
   display: inline-block;
 }
@@ -1468,11 +1493,20 @@
 }
 
 .solution-step-center {
-  font-size: 1.2rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: #fff;
-  min-width: 120px;
+  min-width: 180px;
   text-align: center;
+  line-height: 1.25;
+}
+
+.solution-step-title {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
 }
 
 .solution-step-of {
@@ -1510,7 +1544,11 @@
 
 .solution-screen .calc-hint,
 .solution-screen .solution-sum-hint {
-  display: none;
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.62);
+  margin-top: 4px;
 }
 
 .calc-line-plain {
@@ -1529,6 +1567,57 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.ut-solution-stage {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.ut-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.ut-badge-l {
+  background: #1e3a8a;
+}
+
+.ut-badge-r {
+  background: #166534;
+}
+
+.ut-operand-boxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: min(100%, 420px);
+  margin-top: 16px;
+}
+
+.ut-operand-box {
+  background: #ececec;
+  color: #111;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 700;
 }
 
 .solution-partial-note--minimal {
@@ -1558,72 +1647,34 @@
   display: none;
 }
 
-/* Diagrama UT: puentes + una línea como referencia */
+/* Diagrama UT: una cuadrícula para flechas, dígitos y resultado */
 .ut-bridge-diagram {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: center;
   width: 100%;
-  max-width: 460px;
   margin: 0 auto;
   font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Consolas, monospace;
   font-variant-numeric: tabular-nums;
 }
 
-.ut-equation-ref {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  justify-content: center;
-  flex-wrap: nowrap;
-  gap: 0.55rem;
+.ut-bridge-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--ut-cols, 8), minmax(0, 1fr));
   width: 100%;
-  margin-top: 4px;
-  font-size: clamp(1.45rem, 4.2vw, 1.85rem);
+  max-width: 520px;
+  justify-content: center;
+  align-items: end;
+  font-size: clamp(1.15rem, 3.4vw, 1.7rem);
   font-weight: 700;
   color: #f5f5f5;
 }
 
-.ut-equation-ref-lhs {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.ut-equation-ref-digits {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-}
-
-.ut-equation-ref-rule {
-  width: 100%;
-  height: 0;
-  border: none;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.48);
-  margin-top: 6px;
-}
-
-.ut-equation-ref-op {
-  flex-shrink: 0;
-  margin-bottom: 2px;
-  padding: 0 0.1rem;
-}
-
-.ut-equation-ref-rhs {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.45rem;
-  margin-bottom: 2px;
-}
-
 .ut-bridge-svg-layer {
+  grid-column: 1 / -1;
+  grid-row: 1;
   width: 100%;
   height: 44px;
-  margin-bottom: 2px;
+  margin: 0;
 }
 
 .ut-bridge-svg {
@@ -1633,49 +1684,72 @@
   overflow: visible;
 }
 
+.ut-theme-light {
+  color: #222;
+}
+
+.ut-theme-light .ut-eq-op {
+  color: #222;
+}
+
+.ut-theme-light .ut-equation-ref-rule {
+  border-bottom-color: #333;
+}
+
+.ut-theme-light .result-digit {
+  color: #222;
+}
+
+.ut-theme-light .result-digit.current {
+  color: #b45309;
+}
+
 .ut-eq-cell {
-  min-width: 2.35rem;
+  grid-row: 2;
+  min-width: 0;
+  width: 100%;
   text-align: center;
-  display: inline-block;
+  display: block;
+  line-height: 1.2;
 }
 
 .ut-eq-op {
-  min-width: 1.5rem;
+  grid-row: 2;
+  min-width: 0;
+  width: 100%;
   text-align: center;
   color: rgba(255, 255, 255, 0.9);
   font-weight: 700;
+  line-height: 1.2;
 }
 
-.ut-partial-answer {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  justify-content: flex-end;
-  gap: 0.45rem;
+.ut-equation-ref-rule {
+  grid-row: 3;
   width: 100%;
-  max-width: 460px;
-  margin: 0 auto;
-  padding-top: 22px;
-  min-height: 2.75rem;
-  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Consolas, monospace;
-  font-variant-numeric: tabular-nums;
-}
-
-.ut-answer-step-dot {
-  position: absolute;
-  top: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 1.35rem;
-  line-height: 1;
-  color: #fff;
-  font-weight: 700;
-  pointer-events: none;
+  height: 0;
+  border: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.48);
+  margin: 6px 0 0 0;
 }
 
 .ut-res-slot {
-  min-width: 2.35rem;
+  grid-row: 4;
+  min-width: 0;
+  width: 100%;
   text-align: center;
+  padding-top: 12px;
+}
+
+.ut-res-slot .result-digit-container {
+  min-width: 0;
+  width: 100%;
+  display: block;
+}
+
+.ut-res-slot .result-digit {
+  min-width: 0;
+  width: 100%;
+  display: block;
 }
 
 .ut-res-slot--placeholder .result-digit {
@@ -1684,6 +1758,18 @@
 
 .ut-res-slot--visible .result-digit {
   visibility: visible;
+}
+
+.ut-answer-step-dot {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #fff;
+  font-weight: 700;
+  pointer-events: none;
 }
 
 .solution-header {
@@ -2395,7 +2481,7 @@
 
 .rule-ut-widget {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 20px;
   gap: 10px;
@@ -2403,7 +2489,8 @@
 
 .widget-btn {
   width: 50px;
-  height: 200px;
+  height: 160px;
+  flex-shrink: 0;
   border: none;
   border-radius: 5px;
   font-size: 1.5rem;
@@ -2435,12 +2522,58 @@
 .rule-ut-diagram {
   flex: 1;
   background: white;
-  padding: 20px;
+  padding: 16px 8px;
   border-radius: 5px;
   border: 2px solid #ddd;
   position: relative;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-x: auto;
+}
+
+.rule-ut-diagram .ut-bridge-grid {
+  font-size: clamp(1.15rem, 3.2vw, 1.55rem);
+  color: #222;
+}
+
+.rule-ut-step-help {
+  width: 100%;
+  max-width: 520px;
+  margin: 12px auto 0 auto;
+  padding: 10px 12px;
+  background: #f7f7f4;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  text-align: left;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #222;
+}
+
+.rule-ut-step-help strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+}
+
+.rule-ut-step-help p {
+  margin: 4px 0;
+}
+
+.rule-ut-step-hint {
+  color: #555;
+  font-size: 0.82rem;
+}
+
+.rule-ut-step-sum {
+  font-weight: 700;
+}
+
+.rule-ut-step-help .underlined {
+  color: #b45309;
+  text-decoration: underline;
 }
 
 .diagram-top-row {

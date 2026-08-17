@@ -2,51 +2,73 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../app_state.dart';
+import '../logic/table_rules.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_card.dart';
 
 class TableSelectScreen extends StatelessWidget {
   const TableSelectScreen({super.key});
 
-  static const tables = [2, 3, 4, 5, 6, 7, 8, 9, 11, 12];
-
   @override
   Widget build(BuildContext context) {
     final state = context.read<AppState>();
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: () => state.goTo(AppScreen.main),
-                child: const Text('Atrás'),
-              ),
+    return AppCard(
+      expand: true,
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      child: Column(
+        children: [
+          BackChip(onPressed: () => state.goTo(AppScreen.main)),
+          const SizedBox(height: 8),
+          const Text(
+            'Multiplicación 1-12',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textDark,
+              decoration: TextDecoration.none,
             ),
-            const Text(
-              'Multiplicación 1-12',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                const cols = 2;
+                const rows = 5;
+                const gap = 2.0;
+                final cellW = (constraints.maxWidth - gap) / cols;
+                final cellH = (constraints.maxHeight - gap * (rows - 1)) / rows;
+                return GridView.count(
+                  crossAxisCount: cols,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: gap,
+                  crossAxisSpacing: gap,
+                  childAspectRatio: cellW / cellH,
+                  children: tables112.map((t) {
+                    return Material(
+                      color: AppTheme.menuDark,
+                      child: InkWell(
+                        onTap: () => state.selectTable(t),
+                        hoverColor: const Color(0xFF555555),
+                        child: Center(
+                          child: Text(
+                            '$t',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
             ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                ),
-                itemCount: tables.length,
-                itemBuilder: (_, i) {
-                  final t = tables[i];
-                  return ElevatedButton(
-                    onPressed: () => state.selectTable(t),
-                    child: Text('$t', style: const TextStyle(fontSize: 22)),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

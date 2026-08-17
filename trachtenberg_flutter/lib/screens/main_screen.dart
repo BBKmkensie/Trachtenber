@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../app_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_card.dart';
 
 class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
@@ -10,86 +11,98 @@ class MainScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const Spacer(),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.06),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'Total multiplicaciones resueltas',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${state.totalMultiplications}',
-                    style: const TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.accent,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton(
-                    onPressed: state.reloadStats,
-                    child: const Text('RECARGAR'),
-                  ),
-                ],
-              ),
+    return AppCard(
+      expand: true,
+      padding: const EdgeInsets.fromLTRB(28, 28, 28, 24),
+      child: Column(
+        children: [
+          const Text(
+            'TOTAL MULTIPLICACIONES RESUELTAS',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF666666),
+              fontSize: 13,
+              letterSpacing: 1,
+              decoration: TextDecoration.none,
             ),
-            const SizedBox(height: 32),
-            const Text(
-              'Modo de Juego',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${state.totalMultiplications}',
+            style: const TextStyle(
+              fontSize: 48,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textDark,
+              decoration: TextDecoration.none,
             ),
-            const SizedBox(height: 20),
-            _modeBtn(context, 'UT', () => state.selectUtMode()),
-            const SizedBox(height: 12),
-            _modeBtn(context, '1-12', () => state.selectTablesMode()),
-            const SizedBox(height: 12),
-            _modeBtn(context, 'Info', () => state.selectGameModeInfo(),
-                outlined: true),
-            const Spacer(flex: 2),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: state.reloadStats,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.menuDark,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+            ),
+            child: const Text('RECARGAR', style: TextStyle(letterSpacing: 1, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 28),
+          const Text(
+            'Modo de Juego',
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textDark,
+              decoration: TextDecoration.none,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: Column(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Row(
+                    children: [
+                      Expanded(child: _modeBtn('UT', state.selectUtMode)),
+                      const SizedBox(width: 2),
+                      Expanded(child: _modeBtn('1-12', state.selectTablesMode)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Expanded(
+                  flex: 2,
+                  child: _modeBtn('INFO', state.selectGameModeInfo),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _modeBtn(BuildContext context, String label, VoidCallback onTap,
-      {bool outlined = false}) {
-    return SizedBox(
-      width: double.infinity,
-      child: outlined
-          ? OutlinedButton(
-              onPressed: onTap,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: BorderSide(color: Colors.white.withOpacity(0.3)),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: Text(label, style: const TextStyle(fontSize: 18)),
-            )
-          : ElevatedButton(
-              onPressed: onTap,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: Text(label, style: const TextStyle(fontSize: 18)),
+  Widget _modeBtn(String label, VoidCallback onTap) {
+    return Material(
+      color: AppTheme.menuDark,
+      child: InkWell(
+        onTap: onTap,
+        hoverColor: const Color(0xFF555555),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2,
+              decoration: TextDecoration.none,
             ),
+          ),
+        ),
+      ),
     );
   }
 }

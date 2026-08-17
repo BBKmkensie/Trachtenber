@@ -1,65 +1,59 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 class NumericKeypad extends StatelessWidget {
   final void Function(String) onKey;
 
   const NumericKeypad({super.key, required this.onKey});
 
+  static const _keys = [
+    ['1', '2', '3', 'CE'],
+    ['4', '5', '6', '←'],
+    ['7', '8', '9', '.'],
+    ['', '0', '', '→'],
+  ];
+
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 4,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      childAspectRatio: 1.4,
-      children: [
-        _keyBtn('1'),
-        _keyBtn('2'),
-        _keyBtn('3'),
-        _keyBtn('CE', label: 'CE'),
-        _keyBtn('4'),
-        _keyBtn('5'),
-        _keyBtn('6'),
-        _keyBtn('←', label: '←'),
-        _keyBtn('7'),
-        _keyBtn('8'),
-        _keyBtn('9'),
-        _keyBtn('.', label: '.'),
-        const _EmptyKey(),
-        _keyBtn('0'),
-        const _EmptyKey(),
-        _keyBtn('→', label: '→', color: const Color(0xFF2d5a3d)),
-      ],
-    );
-  }
-
-  Widget _keyBtn(String key, {String? label, Color? color}) {
-    return Material(
-      color: color ?? const Color(0xFFf5f0e6),
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: () => onKey(key),
-        borderRadius: BorderRadius.circular(8),
-        child: Center(
-          child: Text(
-            label ?? key,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: color != null ? Colors.white : const Color(0xFF333333),
-            ),
-          ),
+    return ColoredBox(
+      color: AppTheme.keypadBg,
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child: Column(
+          children: [
+            for (final row in _keys)
+              Expanded(
+                child: Row(
+                  children: [
+                    for (final k in row)
+                      Expanded(
+                        child: k.isEmpty
+                            ? const ColoredBox(color: AppTheme.keypadBg)
+                            : Material(
+                                color: AppTheme.keypadBg,
+                                child: InkWell(
+                                  onTap: () => onKey(k),
+                                  hoverColor: const Color(0xFF555555),
+                                  child: Center(
+                                    child: Text(
+                                      k,
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                      ),
+                  ],
+                ),
+              ),
+          ],
         ),
       ),
     );
   }
-}
-
-class _EmptyKey extends StatelessWidget {
-  const _EmptyKey();
-
-  @override
-  Widget build(BuildContext context) => const SizedBox.shrink();
 }

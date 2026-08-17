@@ -30,28 +30,8 @@ function createWindow() {
 
   // Cargar la aplicación React
   if (isDev) {
-    // Esperar a que el servidor de React esté listo
-    const http = require('http');
-    const checkServer = () => {
-      const req = http.get('http://localhost:3000', (res) => {
-        if (res.statusCode === 200) {
-          win.loadURL('http://localhost:3000');
-          win.webContents.openDevTools();
-        } else {
-          setTimeout(checkServer, 1000);
-        }
-      });
-      req.on('error', () => {
-        console.log('Esperando servidor de React en http://localhost:3000...');
-        setTimeout(checkServer, 1000);
-      });
-      req.setTimeout(5000);
-      req.on('timeout', () => {
-        req.destroy();
-        setTimeout(checkServer, 1000);
-      });
-    };
-    checkServer();
+    win.loadURL('http://localhost:3000');
+    win.webContents.openDevTools();
   } else {
     win.loadFile(path.join(__dirname, 'build', 'index.html'));
   }

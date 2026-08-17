@@ -2,79 +2,124 @@ import React, { useState, useEffect, useRef, useId } from 'react';
 import './App.css';
 
 /**
- * Una fila tipo «0 0 1 7 6 × 1 1» con puentes en ángulo recto (estilo app de referencia).
+ * Cuadrícula única: flechas, multiplicando × multiplicador y resultado
+ * comparten las mismas columnas para que cada dígito quede alineado.
+ * Las flechas se agrupan por cifra de la derecha (como en la app de referencia).
  */
-function UTStepBridgeDiagram({ paddedLHS, num2Str, pairs }) {
+function UTStepBridgeDiagram({ paddedLHS, num2Str, pairs, children, theme = 'dark' }) {
   const uid = useId().replace(/:/g, '');
   const arrowId = `ut-arr-${uid}`;
   const lhs = paddedLHS.split('');
-  const rhs = num2Str.split('');
+  const rhs = String(num2Str).split('');
   const lhsLen = lhs.length;
   const totalCells = lhsLen + 1 + rhs.length;
   const cellXPct = (cellIndex) => ((cellIndex + 0.5) / totalCells) * 100;
+  const stroke = theme === 'light' ? '#333' : '#eaeaea';
+
+  const bridgesByRhs = new Map();
+  (pairs || []).forEach((p) => {
+    if (!bridgesByRhs.has(p.rhsIdx)) bridgesByRhs.set(p.rhsIdx, []);
+    if (!bridgesByRhs.get(p.rhsIdx).includes(p.lhsIdx)) {
+      bridgesByRhs.get(p.rhsIdx).push(p.lhsIdx);
+    }
+  });
+  const rhsOrder = [...bridgesByRhs.keys()].sort((a, b) => b - a);
+  const yBot = 40;
+  const viewH = Math.max(44, 12 + rhsOrder.length * 10);
 
   return (
-    <div className="ut-bridge-diagram">
-      <div className="ut-bridge-svg-layer" aria-hidden>
-        <svg
-          className="ut-bridge-svg"
-          viewBox="0 0 100 26"
-          preserveAspectRatio="xMidYMin meet"
-        >
-          <defs>
-            <marker
-              id={arrowId}
-              markerWidth="5"
-              markerHeight="5"
-              refX="2.5"
-              refY="2.5"
-              orient="auto"
-              markerUnits="strokeWidth"
-            >
-              <path d="M0,0 L5,2.5 L0,5 Z" fill="#eaeaea" />
-            </marker>
-          </defs>
-          {pairs.map((p, idx) => {
-            const xi = cellXPct(p.lhsIdx);
-            const xj = cellXPct(lhsLen + 1 + p.rhsIdx);
-            const yTop = 3;
-            const yBot = 23;
-            const d = `M ${xj} ${yBot} L ${xj} ${yTop} L ${xi} ${yTop} L ${xi} ${yBot}`;
-            return (
-              <path
-                key={`${p.lhsIdx}-${p.rhsIdx}-${idx}`}
-                d={d}
-                fill="none"
-                stroke="#eaeaea"
-                strokeWidth="0.65"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                markerEnd={`url(#${arrowId})`}
-              />
-            );
-          })}
-        </svg>
-      </div>
-      {/* Una sola línea como en la app de referencia: 0 0 1 7 6 × 1 1; raya solo bajo el multiplicando */}
-      <div className="ut-equation-ref" aria-label={`Multiplicación ${paddedLHS} por ${num2Str}`}>
-        <div className="ut-equation-ref-lhs">
-          <div className="ut-equation-ref-digits">
-            {lhs.map((d, i) => (
-              <span key={`l-${i}`} className="ut-eq-cell">
-                {d}
-              </span>
-            ))}
-          </div>
-          <div className="ut-equation-ref-rule" />
+    <div
+      className={`ut-bridge-diagram ut-theme-${theme}`}
+      style={{ '--ut-cols': totalCells }}
+      aria-label={`Multiplicación ${paddedLHS} por ${num2Str}`}
+    >
+      <div className="ut-bridge-grid">
+        <div className="ut-bridge-svg-layer" aria-hidden style={{ height: viewH }}>
+          <svg
+            className="ut-bridge-svg"
+            viewBox={`0 0 100 ${viewH}`}
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <marker
+                id={arrowId}
+                markerWidth="5"
+                markerHeight="5"
+                refX="2.5"
+                refY="2.5"
+                orient="auto"
+                markerUnits="strokeWidth"
+              >
+                <path d="M0,0 L5,2.5 L0,5 Z" fill={stroke} />
+              </marker>
+            </defs>
+            {rhsOrder.map((rhsIdx, level) => {
+              const lhsIdxs = bridgesByRhs.get(rhsIdx).slice().sort((a, b) => a - b);
+              const yTop = 4 + level * 9;
+              const xR = cellXPct(lhsLen + 1 + rhsIdx);
+              const xLeft = cellXPct(lhsIdxs[0]);
+              return (
+                <g key={`br-${rhsIdx}`}>
+                  <path
+                    d={`M ${xR} ${yBot} L ${xR} ${yTop} L ${xLeft} ${yTop}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth="0.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  {lhsIdxs.map((li) => (
+                    <path
+                      key={`drop-${rhsIdx}-${li}`}
+                      d={`M ${cellXPct(li)} ${yTop} L ${cellXPct(li)} ${yBot}`}
+                      fill="none"
+                      stroke={stroke}
+                      strokeWidth="0.7"
+                      strokeLinecap="round"
+                      markerEnd={`url(#${arrowId})`}
+                    />
+                  ))}
+                </g>
+              );
+            })}
+          </svg>
         </div>
-        <span className="ut-eq-op ut-equation-ref-op">×</span>
-        <div className="ut-equation-ref-rhs">
-          {rhs.map((d, i) => (
-            <span key={`r-${i}`} className="ut-eq-cell">
-              {d}
-            </span>
-          ))}
-        </div>
+        {lhs.map((d, i) => (
+          <span
+            key={`l-${i}`}
+            className="ut-eq-cell ut-eq-cell--lhs"
+            style={{ gridRow: 2, gridColumn: i + 1 }}
+          >
+            {d}
+          </span>
+        ))}
+        <span className="ut-eq-op" style={{ gridRow: 2, gridColumn: lhsLen + 1 }}>
+          ×
+        </span>
+        {rhs.map((d, i) => (
+          <span
+            key={`r-${i}`}
+            className="ut-eq-cell ut-eq-cell--rhs"
+            style={{ gridRow: 2, gridColumn: lhsLen + 2 + i }}
+          >
+            {d}
+          </span>
+        ))}
+        <div
+          className="ut-equation-ref-rule"
+          style={{ gridRow: 3, gridColumn: `1 / span ${lhsLen}` }}
+        />
+        {React.Children.map(children, (child, i) =>
+          child
+            ? React.cloneElement(child, {
+                style: {
+                  ...(child.props.style || {}),
+                  gridRow: 4,
+                  gridColumn: i + 1
+                }
+              })
+            : child
+        )}
       </div>
     </div>
   );
@@ -91,23 +136,34 @@ function multiplicationAnswerMatches(userInput, correctAnswer) {
 /**
  * Número natural y la misma cifra rellenada a la anchura del multiplicando en pantalla (p. ej. 1936 y 01936).
  */
-function getProductAnswerVariants(num1, answer) {
-  const num1Str = String(num1).padStart(5, '0');
-  const w = num1Str.length;
+function getProductAnswerVariants(num1, num2, answer) {
+  const w = getUTMultiplicandWidth(num1, num2 ?? String(num1).length);
   const plain = String(answer);
   const padded = plain.padStart(w, '0');
   return { plain, padded };
 }
 
-/** Misma anchura que el teclado UT: mínimo 5 cifras, o len(multiplicando)+len(multiplicador). */
+/** Ceros a la izquierda = cifras del multiplicador (regla UT). 19 × 72 → 0019. */
 function getUTMultiplicandWidth(num1Raw, num2Raw) {
   const s1 = String(num1Raw);
   const s2 = String(num2Raw);
-  return Math.max(5, s1.length + s2.length);
+  return s1.length + s2.length;
 }
 
 function padUTMultiplicand(num1Raw, num2Raw) {
   return String(num1Raw).padStart(getUTMultiplicandWidth(num1Raw, num2Raw), '0');
+}
+
+function randomIntInclusive(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+/** Número aleatorio con entre minDigits y maxDigits cifras, sin ceros a la izquierda. */
+function randomByDigits(minDigits, maxDigits) {
+  const digits = randomIntInclusive(minDigits, maxDigits);
+  const min = digits === 1 ? 1 : 10 ** (digits - 1);
+  const max = 10 ** digits - 1;
+  return randomIntInclusive(min, max);
 }
 
 function App() {
@@ -141,37 +197,30 @@ function App() {
     { symbol: '÷', name: 'División' }
   ];
 
-  const generateQuestion = () => {
+  const generateQuestion = (opts = {}) => {
+    const mode = opts.mode ?? gameMode;
+    const diff = opts.difficulty ?? difficulty;
     let num1, num2, answer;
     
     // Generar pregunta según el modo de juego
-    if (gameMode === 'ut') {
+    if (mode === 'ut') {
       // Unit Tables: multiplicaciones según dificultad
-      if (difficulty === 'facil') {
-        // Easy: multiplicaciones por un número y por dos (1-2 dígitos)
-        // Número de 1-2 dígitos (1-99)
-        num1 = Math.floor(Math.random() * 99) + 1;
-        // Multiplicador de 1-2 dígitos (1-99)
-        num2 = Math.floor(Math.random() * 99) + 1;
-      } else if (difficulty === 'medio') {
-        // Medium: multiplicaciones de 2 o 3 dígitos
-        // Número de 2-3 dígitos (10-999)
-        num1 = Math.floor(Math.random() * 990) + 10;
-        // Multiplicador de 2-3 dígitos (10-999)
-        num2 = Math.floor(Math.random() * 990) + 10;
+      if (diff === 'facil') {
+        num1 = randomByDigits(1, 2);
+        num2 = randomByDigits(1, 2);
+      } else if (diff === 'medio') {
+        num1 = randomByDigits(2, 3);
+        num2 = randomByDigits(2, 3);
       } else {
-        // Hard: multiplicaciones de 3, 4 y 5 dígitos
-        // Número de 3-5 dígitos (100-99999)
-        num1 = Math.floor(Math.random() * 99800) + 100;
-        // Multiplicador de 3-5 dígitos (100-99999)
-        num2 = Math.floor(Math.random() * 99800) + 100;
+        num1 = randomByDigits(3, 5);
+        num2 = randomByDigits(3, 5);
       }
       answer = num1 * num2;
       const newQuestion = { num1, num2, operator: '×', answer };
       setQuestion(newQuestion);
       // Generar pasos de solución después de actualizar la pregunta
       setTimeout(() => generateSolutionSteps(num1, num2), 0);
-    } else if (gameMode === '1-12') {
+    } else if (mode === '1-12') {
       // Tablas del 1-12: multiplicaciones con la tabla seleccionada
       if (selectedTable) {
         num1 = selectedTable;
@@ -189,7 +238,7 @@ function App() {
       // Modo mixto (por defecto)
       const op = operators[Math.floor(Math.random() * operators.length)];
       
-      switch (difficulty) {
+      switch (diff) {
         case 'facil':
           num1 = Math.floor(Math.random() * 20) + 1;
           num2 = Math.floor(Math.random() * 20) + 1;
@@ -216,7 +265,7 @@ function App() {
           answer = num1 - num2;
           break;
         case '×':
-          if (difficulty === 'facil') {
+          if (diff === 'facil') {
             num1 = Math.floor(Math.random() * 10) + 1;
             num2 = Math.floor(Math.random() * 10) + 1;
           }
@@ -237,9 +286,14 @@ function App() {
     setFeedback('');
   };
 
-  const startGame = (mode = null) => {
+  const startGame = (mode = null, difficultyForQuestion = null) => {
+    const nextMode = mode || gameMode;
+    const nextDiff = difficultyForQuestion || difficulty;
     if (mode) {
       setGameMode(mode);
+    }
+    if (difficultyForQuestion) {
+      setDifficulty(difficultyForQuestion);
     }
     setScreen('game');
     setGameActive(true);
@@ -247,7 +301,7 @@ function App() {
     setTimeLeft(60);
     setCorrectAnswers(0);
     setTotalQuestions(0);
-    generateQuestion();
+    generateQuestion({ mode: nextMode, difficulty: nextDiff });
   };
 
   const stopGame = () => {
@@ -278,9 +332,7 @@ function App() {
   };
 
   const selectDifficulty = (selectedDifficulty) => {
-    setDifficulty(selectedDifficulty);
-    setScreen('game');
-    startGame(gameMode);
+    startGame(gameMode, selectedDifficulty);
   };
 
   const selectTable = (table) => {
@@ -471,72 +523,88 @@ function App() {
     const LHS = padUTMultiplicand(num1Str, num2Str);
     const RHS = num2Str;
     const answer = (parseInt(num1Str) * parseInt(num2Str)).toString().padStart(LHS.length, '0');
-    
+    const placeNames = [
+      'unidades',
+      'decenas',
+      'centenas',
+      'millares',
+      'decenas de millar',
+      'centenas de millar'
+    ];
+    const fromRight = LHS.length - 1 - stepIndex;
+    const placeLabel = placeNames[fromRight] || `posición ${fromRight + 1} desde la derecha`;
+
     const res = [];
     const calculations = [];
-    
-    // Calcular para cada dígito del multiplicador
+
     for (let i = 0; i < RHS.length; i++) {
       const rhsIdx = RHS.length - i - 1;
       const lhsIdx = stepIndex + i;
-      
+
       if (lhsIdx >= LHS.length) break;
-      
-      const mult1 = String(parseInt(LHS[lhsIdx]) * parseInt(RHS[rhsIdx])).padStart(2, '0');
-      res.push(parseInt(mult1[1]));
+
+      const a = parseInt(LHS[lhsIdx], 10);
+      const b = parseInt(RHS[rhsIdx], 10);
+      const mult1 = String(a * b).padStart(2, '0');
+      res.push(parseInt(mult1[1], 10));
       calculations.push({
-        text: `${LHS[lhsIdx]} por ${RHS[rhsIdx]} es ${mult1[0]}[u]${mult1[1]}[/u]`,
-        product: parseInt(mult1),
+        text: `${a} × ${b} = ${mult1[0]}${mult1[1]}  →  unidades [u]${mult1[1]}[/u]`,
+        product: a * b,
         underlined: mult1[1],
-        hint: 'Para este producto usamos la cifra de la derecha (unidades).'
+        hint: `Flecha: ${a} (izquierda) × ${b} (derecha). Nos quedamos con las unidades.`
       });
-      
+
       if (lhsIdx + 1 < LHS.length) {
-        const mult2 = String(parseInt(LHS[lhsIdx + 1]) * parseInt(RHS[rhsIdx])).padStart(2, '0');
-        res.push(parseInt(mult2[0]));
+        const a2 = parseInt(LHS[lhsIdx + 1], 10);
+        const mult2 = String(a2 * b).padStart(2, '0');
+        res.push(parseInt(mult2[0], 10));
         calculations.push({
-          text: `${LHS[lhsIdx + 1]} por ${RHS[rhsIdx]} es [u]${mult2[0]}[/u]${mult2[1]}`,
-          product: parseInt(mult2),
+          text: `${a2} × ${b} = ${mult2[0]}${mult2[1]}  →  decenas [u]${mult2[0]}[/u]`,
+          product: a2 * b,
           underlined: mult2[0],
-          hint: 'Para este producto usamos la cifra de la izquierda (decenas).'
+          hint: `Del mismo ${b}: ${a2} × ${b}. Nos quedamos con las decenas.`
         });
       }
     }
-    
+
     const sum = res.reduce((a, b) => a + b, 0);
     const carryFromPartial = sum >= 10 ? Math.floor(sum / 10) : 0;
 
-    if (carryFromPartial > 0 && sum % 10 !== parseInt(answer[stepIndex])) {
-      const adjustedCarry = (parseInt(answer[stepIndex]) - sum % 10 + 10) % 10;
+    if (carryFromPartial > 0 && sum % 10 !== parseInt(answer[stepIndex], 10)) {
+      const adjustedCarry = (parseInt(answer[stepIndex], 10) - (sum % 10) + 10) % 10;
       if (adjustedCarry > 0) {
         calculations.push({
-          text: `Agregar [u]${adjustedCarry}[/u] llevado`,
+          text: `Acarreo de la cifra anterior: [u]${adjustedCarry}[/u]`,
           product: adjustedCarry,
           underlined: String(adjustedCarry),
-          hint: 'Lo que arrastramos de la columna anterior.'
+          hint: 'Se suma lo que se llevó de la columna de la derecha.'
         });
         res.push(adjustedCarry);
       }
     }
-    
+
     const finalSum = res.reduce((a, b) => a + b, 0);
     const finalSumStr = String(finalSum);
-    const sumPrefix = '';
+    const digit = finalSum % 10;
+    const carryOut = Math.floor(finalSum / 10);
     const sumLine =
-      sumPrefix +
-      res.join(' + ') +
-      ' = ' +
-      (finalSumStr.length > 1 ? `${finalSumStr[0]}[u]${finalSumStr[1]}[/u]` : `[u]${finalSumStr}[/u]`);
-    
+      (res.length > 1 ? res.join(' + ') + ' = ' : '') +
+      (finalSumStr.length > 1
+        ? `${finalSumStr[0]}[u]${finalSumStr[1]}[/u]`
+        : `[u]${finalSumStr}[/u]`);
+
+    let sumHint = `Cifra del resultado: ${digit} (${placeLabel}).`;
+    if (carryOut > 0) {
+      sumHint += ` El ${carryOut} se lleva a la siguiente columna (hacia la izquierda).`;
+    }
+
     return {
+      title: `Cifra de las ${placeLabel}`,
       calculations,
-      resultDigit: parseInt(answer[stepIndex]),
-      carry: Math.floor(finalSum / 10),
+      resultDigit: parseInt(answer[stepIndex], 10),
+      carry: carryOut,
       sumText: sumLine,
-      sumHint:
-        res.length > 1
-          ? 'El dígito subrayado del total es la cifra del resultado en esta columna; lo de más a la izquierda es el arrastre.'
-          : 'Esta cifra es el dígito del resultado en esta columna.'
+      sumHint
     };
   };
 
@@ -664,42 +732,59 @@ function App() {
         }
       }
     } else if (gameMode === 'ut') {
-      // Método UT preciso
       const RHS = num2Str;
       const paddedLHS = padUTMultiplicand(num1Str, RHS);
       const answer = (num1 * num2).toString().padStart(paddedLHS.length, '0');
-      
-      // Calcular cada dígito del resultado (de derecha a izquierda)
+      const zerosAdded = RHS.length;
+
+      steps.push({
+        stepNumber: 1,
+        isPrep: true,
+        title: 'Preparación',
+        utColumnIndex: null,
+        digitsRevealed: 0,
+        calculations: [
+          {
+            text: `${num2} tiene ${zerosAdded} cifra${zerosAdded === 1 ? '' : 's'}, así que añadimos ${zerosAdded} cero${zerosAdded === 1 ? '' : 's'} a la izquierda de ${num1}.`,
+            hint: `Queda ${paddedLHS.split('').join(' ')} × ${RHS.split('').join(' ')}.`
+          },
+          {
+            text: 'Ahora calculamos cada cifra del resultado de derecha a izquierda (unidades, decenas, centenas…).',
+            hint: 'Las flechas marcan qué dígitos se multiplican en cada paso.'
+          }
+        ],
+        partialResult: paddedLHS.split('').map(() => ''),
+        currentDigit: null,
+        carry: 0
+      });
+
       for (let stepIdx = paddedLHS.length - 1; stepIdx >= 0; stepIdx--) {
         const utStep = calculateUTStep(num1Str, RHS, stepIdx);
-        
-        // Construir resultado parcial
+        const digitsRevealed = paddedLHS.length - stepIdx;
         const partialResult = [];
         for (let j = 0; j < paddedLHS.length; j++) {
           if (j < stepIdx) {
-            partialResult.push(0);
-          } else if (j === stepIdx) {
-            partialResult.push(utStep.resultDigit);
+            partialResult.push('');
           } else {
             partialResult.push(parseInt(answer[j], 10));
           }
         }
-        // Orden izquierda→derecha: columna j alinea con cifra j del multiplicando y del resultado
 
         steps.push({
-          stepNumber: paddedLHS.length - stepIdx,
-          utColumnIndex: stepIdx, // índice de columna desde la izquierda (0 = primera cifra del relleno)
-          multiplier: parseInt(RHS),
+          stepNumber: steps.length + 1,
+          isPrep: false,
+          title: utStep.title,
+          utColumnIndex: stepIdx,
+          digitsRevealed,
+          multiplier: parseInt(RHS, 10),
           calculations: utStep.calculations,
           sumText: utStep.sumText,
           sumHint: utStep.sumHint,
-          partialResult: partialResult,
+          partialResult,
           currentDigit: utStep.resultDigit,
           carry: utStep.carry
         });
       }
-      // Orden en pantalla: índice 0 = Paso 1 (cifra de las unidades, columna derecha del relleno),
-      // luego Paso 2, … hasta la última cifra a la izquierda. No usar reverse(): el bucle ya va de derecha a izquierda.
     } else {
       // Método simple (fallback)
       const num1StrPadded = num1Str.padStart(5, '0');
@@ -846,7 +931,9 @@ function App() {
       // el último dígito escrito siempre esté alineado con el último dígito del multiplicando
       // Ejemplo: escribes "9" -> userAnswer = "9" (se muestra con espacios a la izquierda)
       //          escribes "3" -> userAnswer = "39" (el "3" aparece a la izquierda del "9")
-      const num1Str = question.num1.toString().padStart(5, '0');
+      const num1Str = gameMode === 'ut'
+        ? padUTMultiplicand(question.num1, question.num2)
+        : question.num1.toString().padStart(5, '0');
       const maxDigits = num1Str.length;
       // Limitar el número de dígitos al número de dígitos del multiplicando
       setUserAnswer(prev => {
@@ -859,12 +946,11 @@ function App() {
   };
 
   const showSolution = () => {
-    // Asegurar que siempre comience desde el paso 1 (índice 0)
-    // Resetear inmediatamente y de forma síncrona
     setCurrentStep(0);
-    // Resetear la referencia para que el useEffect detecte que acabamos de entrar
     solutionScreenEnteredRef.current = false;
-    // Usar setTimeout para asegurar que el estado se actualice antes de cambiar la pantalla
+    if (question && question.num1 != null && question.num2 != null) {
+      generateSolutionSteps(question.num1, question.num2);
+    }
     setTimeout(() => {
       setScreen('solution');
     }, 0);
@@ -1126,7 +1212,7 @@ function App() {
       // Si la respuesta es incorrecta, mostrar el mensaje pero NO avanzar
       // El usuario debe corregir la respuesta antes de poder continuar
       // NO incrementar totalQuestions hasta que sea correcta
-      const { plain, padded } = getProductAnswerVariants(question.num1, question.answer);
+      const { plain, padded } = getProductAnswerVariants(question.num1, question.num2, question.answer);
       const dual =
         question.operator === '×' && plain !== padded
           ? ` (${plain} o ${padded}; ambas formas son correctas)`
@@ -1487,462 +1573,107 @@ function App() {
             <button 
               className="widget-btn widget-btn-left" 
               onClick={() => {
-                const num1Str = (utNumber1 || '123').padStart(5, '0');
-                const num2Str = utNumber2 || '45';
-                const maxSteps = num1Str.length + (num2Str.length * 4); // Aproximadamente el número máximo de flechas
-                if (utArrowStep < maxSteps) {
-                  setUtArrowStep(utArrowStep + 1);
-                }
+                const padded = padUTMultiplicand(utNumber1 || '123', utNumber2 || '45');
+                setUtArrowStep((s) => Math.min(s + 1, padded.length));
               }}
             >
               L
             </button>
             <div className="rule-ut-diagram">
-              <div className="diagram-top-row">
-                {(() => {
-                  const num1Str = (utNumber1 || '123').padStart(5, '0');
-                  const num2Str = utNumber2 || '45';
-                  return (
-                    <>
-                      {num1Str.split('').map((d, i) => (
-                        <span key={`top-${i}`} className="diagram-digit" data-index={i}>{d}</span>
-                      ))}
-                      <span className="diagram-operator">×</span>
-                      {num2Str.split('').map((d, i) => (
-                        <span key={`mult-${i}`} className="diagram-digit" data-index={num1Str.length + 1 + i}>{d}</span>
-                      ))}
-                    </>
-                  );
-                })()}
-              </div>
-              <div className="diagram-arrows-container">
-                <svg className="diagram-arrows" viewBox="0 0 400 80" preserveAspectRatio="xMidYMid meet">
-                  {(() => {
-                    const num1Str = (utNumber1 || '123').padStart(5, '0');
-                    const num2Str = utNumber2 || '45';
-                    const num1 = parseInt(utNumber1) || 123;
-                    const num2 = parseInt(utNumber2) || 45;
-                    const result = (num1 * num2).toString().padStart(5, '0');
-                    const arrows = [];
-                    let arrowIndex = 0;
-                    
-                    // Calcular posiciones - ajustadas para el layout real
-                    const digitWidth = 33; // 25px ancho + 8px gap
-                    const operatorWidth = 50; // espacio para el operador ×
-                    const startX = 12.5; // centro del primer dígito
-                    const topY = 35; // Arriba del SVG (donde está el número superior) - ajustado para incluir línea horizontal y más espacio
-                    const bottomY = 65; // Abajo del SVG (donde está el resultado)
-                    
-                    // Crear lista de todas las flechas en orden de izquierda a derecha
-                    const allArrows = [];
-                    
-                    // Método Trachtenberg UT: generar flechas para cualquier par de números
-                    // El método empieza desde la derecha y va hacia la izquierda
-                    const arrowSpacing = 18; // Espaciado vertical entre flechas (ajustado para el viewBox más grande)
-                    const arrowToY = topY + 25; // Altura donde apuntan las flechas (cerca de los números)
-                    let stepCount = 0;
-                    
-                    // Paso 1: Multiplicar los últimos dígitos (de derecha a izquierda)
-                    // Ejemplo: 3 × 5 en 123 × 45
-                    const lastMultIdx = num2Str.length - 1; // Último dígito del multiplicador
-                    const lastNum1Idx = num1Str.length - 1; // Último dígito del número izquierdo
-                    const multX1 = startX + (num1Str.length * digitWidth) + operatorWidth + (lastMultIdx * digitWidth);
-                    const num1X1 = startX + (lastNum1Idx * digitWidth);
-                    
-                    allArrows.push({
-                      type: 'double-arrow',
-                      key: `step-${stepCount}`,
-                      multX: multX1,
-                      multY: arrowToY,
-                      num1X: num1X1,
-                      num1Y: arrowToY,
-                      arrowY: topY - 5 - (stepCount * arrowSpacing),
-                      step: stepCount++
-                    });
-                    
-                    // Pasos siguientes: Para cada dígito del multiplicador (de derecha a izquierda, empezando por el segundo)
-                    // Se multiplica con los dígitos correspondientes del número izquierdo
-                    for (let multOffset = 1; multOffset < num2Str.length; multOffset++) {
-                      const multIdx = num2Str.length - 1 - multOffset; // Índice del dígito del multiplicador
-                      const multX = startX + (num1Str.length * digitWidth) + operatorWidth + (multIdx * digitWidth);
-                      
-                      // Determinar qué dígitos del número izquierdo se multiplican con este dígito del multiplicador
-                      const num1Indices = [];
-                      // El dígito del multiplicador se multiplica con los últimos (multOffset + 1) dígitos del número izquierdo
-                      for (let i = 0; i <= multOffset && (num1Str.length - 1 - i) >= 0; i++) {
-                        const num1Idx = num1Str.length - 1 - i;
-                        if (num1Idx >= 0) {
-                          num1Indices.push(num1Idx);
-                        }
-                      }
-                      
-                      // Ordenar de izquierda a derecha
-                      num1Indices.sort((a, b) => a - b);
-                      
-                      if (num1Indices.length > 0) {
-                        if (num1Indices.length === 1) {
-                          // Una sola conexión: flecha simple
-                          const num1X = startX + (num1Indices[0] * digitWidth);
-                          allArrows.push({
-                            type: 'double-arrow',
-                            key: `step-${stepCount}`,
-                            multX: multX,
-                            multY: arrowToY,
-                            num1X: num1X,
-                            num1Y: arrowToY,
-                            arrowY: topY - 10 - (stepCount * arrowSpacing),
-                            step: stepCount++
-                          });
-                        } else {
-                          // Múltiples conexiones: flecha con múltiples puntas
-                          allArrows.push({
-                            type: 'multi-arrow',
-                            key: `step-${stepCount}`,
-                            multX: multX,
-                            multY: arrowToY,
-                            num1Indices: num1Indices,
-                            num1Y: arrowToY,
-                            arrowY: topY - 10 - (stepCount * arrowSpacing),
-                            startX: startX,
-                            digitWidth: digitWidth,
-                            step: stepCount++
-                          });
-                        }
-                      }
-                    }
-                    
-                    // También crear flechas para combinaciones adicionales según el método UT
-                    // Para cada dígito del número izquierdo (de derecha a izquierda, empezando por el segundo)
-                    for (let num1Offset = 1; num1Offset < num1Str.length; num1Offset++) {
-                      const num1Idx = num1Str.length - 1 - num1Offset;
-                      const num1X = startX + (num1Idx * digitWidth);
-                      
-                      // Este dígito se multiplica con los últimos dígitos del multiplicador
-                      for (let multOffset = 0; multOffset < num2Str.length && multOffset <= num1Offset; multOffset++) {
-                        const multIdx = num2Str.length - 1 - multOffset;
-                        const multX = startX + (num1Str.length * digitWidth) + operatorWidth + (multIdx * digitWidth);
-                        
-                        // Solo crear si no es la primera combinación (ya la tenemos)
-                        if (!(num1Idx === num1Str.length - 1 && multIdx === num2Str.length - 1)) {
-                          // Verificar si esta combinación ya existe
-                          const exists = allArrows.some(arrow => {
-                            if (arrow.type === 'double-arrow') {
-                              return arrow.num1X === num1X && arrow.multX === multX;
-                            } else if (arrow.type === 'multi-arrow') {
-                              return arrow.multX === multX && arrow.num1Indices.includes(num1Idx);
-                            }
-                            return false;
-                          });
-                          
-                          if (!exists) {
-                            allArrows.push({
-                              type: 'double-arrow',
-                              key: `step-${stepCount}`,
-                              multX: multX,
-                              multY: arrowToY,
-                              num1X: num1X,
-                              num1Y: arrowToY,
-                              arrowY: topY - 10 - (stepCount * arrowSpacing),
-                              step: stepCount++
-                            });
-                          }
-                        }
-                      }
-                    }
-                    
-                    // Separar la primera flecha de las demás
-                    // La primera flecha tiene su propia línea horizontal
-                    // Las demás flechas (2, 3, etc.) se unen arriba con una línea horizontal compartida
-                    const firstArrow = allArrows[0];
-                    const otherArrows = allArrows.slice(1);
-                    
-                    // Calcular todos los puntos X de las flechas visibles (excepto la primera) para crear una línea horizontal compartida arriba
-                    const allVisibleXPoints = [];
-                    const visibleOtherArrows = [];
-                    let tempIndex = 0;
-                    
-                    // Primero renderizar la primera flecha con su propia línea horizontal
-                    // Esta es la PRIMERA línea horizontal (línea 1)
-                    if (utArrowStep > 0 && firstArrow) {
-                      if (firstArrow.type === 'double-arrow') {
-                        arrows.push(
-                          <g key={firstArrow.key}>
-                            {/* PRIMERA línea horizontal propia de la primera flecha */}
-                            <line
-                              x1={firstArrow.num1X}
-                              y1={firstArrow.arrowY}
-                              x2={firstArrow.multX}
-                              y2={firstArrow.arrowY}
-                              stroke="#333"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                            />
-                            {/* Flecha vertical apuntando al dígito del multiplicador */}
-                            <line
-                              x1={firstArrow.multX}
-                              y1={firstArrow.arrowY}
-                              x2={firstArrow.multX}
-                              y2={firstArrow.multY}
-                              stroke="#333"
-                              strokeWidth="1.5"
-                              markerEnd="url(#arrowhead)"
-                            />
-                            {/* Flecha vertical apuntando al dígito del número izquierdo */}
-                            <line
-                              x1={firstArrow.num1X}
-                              y1={firstArrow.arrowY}
-                              x2={firstArrow.num1X}
-                              y2={firstArrow.num1Y}
-                              stroke="#333"
-                              strokeWidth="1.5"
-                              markerEnd="url(#arrowhead)"
-                            />
-                          </g>
+              {(() => {
+                const n1 = utNumber1 || '123';
+                const n2 = utNumber2 || '45';
+                const paddedLHS = padUTMultiplicand(n1, n2);
+                const product = ((parseInt(n1, 10) || 0) * (parseInt(n2, 10) || 0))
+                  .toString()
+                  .padStart(paddedLHS.length, '0');
+                const totalSteps = paddedLHS.length;
+                const revealed = Math.max(0, Math.min(utArrowStep, totalSteps));
+                const stepIndex = revealed === 0 ? null : paddedLHS.length - revealed;
+                const pairs = stepIndex === null
+                  ? []
+                  : getUTMultiplyPairsForStep(n1, n2, stepIndex).pairs;
+                const utStep = stepIndex === null ? null : calculateUTStep(n1, n2, stepIndex);
+                return (
+                  <>
+                    <UTStepBridgeDiagram
+                      theme="light"
+                      paddedLHS={paddedLHS}
+                      num2Str={n2}
+                      pairs={pairs}
+                    >
+                      {product.split('').map((d, i) => {
+                        const positionFromRight = product.length - 1 - i;
+                        const visible = positionFromRight < revealed;
+                        const isCurrent = stepIndex !== null && i === stepIndex;
+                        return (
+                          <span
+                            key={`res-${i}`}
+                            className={`ut-res-slot ${visible ? 'ut-res-slot--visible' : 'ut-res-slot--placeholder'}`}
+                          >
+                            <span className={`result-digit ${isCurrent ? 'current' : ''}`}>
+                              {visible ? d : '\u00a0'}
+                            </span>
+                          </span>
                         );
-                      }
-                      tempIndex++;
-                    }
-                    
-                    // Ahora procesar las demás flechas (2, 3, etc.)
-                    otherArrows.forEach((arrow) => {
-                      if (tempIndex < utArrowStep) {
-                        visibleOtherArrows.push(arrow);
-                        if (arrow.type === 'double-arrow') {
-                          allVisibleXPoints.push(arrow.num1X, arrow.multX);
-                        } else if (arrow.type === 'multi-arrow' && arrow.num1Indices && arrow.num1Indices.length > 0) {
-                          const num1Xs = arrow.num1Indices.map(idx => arrow.startX + (idx * arrow.digitWidth));
-                          allVisibleXPoints.push(...num1Xs, arrow.multX);
-                        }
-                        tempIndex++;
-                      }
-                    });
-                    
-                    // Renderizar las demás flechas (2, 3, etc.)
-                    // Cuando hay 3 o más flechas, cada una tiene su propia línea horizontal separada
-                    // Asegurar que se muestren todas las flechas hasta utArrowStep
-                    tempIndex = 1; // Empezar desde la segunda flecha
-                    
-                    if (utArrowStep >= 2) {
-                      // Renderizar cada flecha adicional con su propia línea horizontal
-                      // Iterar sobre otherArrows y mostrar cada una hasta utArrowStep
-                      for (let i = 0; i < otherArrows.length && tempIndex < utArrowStep; i++) {
-                        const arrow = otherArrows[i];
-                        const arrowY = arrow.arrowY; // Altura de esta flecha
-                        const currentStep = tempIndex; // Guardar el paso actual antes de incrementar
-                        
-                        if (arrow.type === 'double-arrow') {
-                          // Calcular los puntos X para esta flecha
-                          const arrowMinX = Math.min(arrow.num1X, arrow.multX);
-                          const arrowMaxX = Math.max(arrow.num1X, arrow.multX);
-                          
-                          // Dibujar línea horizontal para esta flecha
-                          arrows.push(
-                            <line
-                              key={`horizontal-line-${arrow.key}`}
-                              x1={arrowMinX}
-                              y1={arrowY}
-                              x2={arrowMaxX}
-                              y2={arrowY}
-                              stroke="#333"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                            />
-                          );
-                          
-                          // Si es la tercera flecha (currentStep = 2), usar flechas diagonales
-                          // Si es la segunda flecha (currentStep = 1), usar flechas verticales
-                          if (utArrowStep >= 3 && currentStep === 2) {
-                            // Tercera flecha: flechas diagonales
-                            arrows.push(
-                              <g key={arrow.key}>
-                                {/* Flecha diagonal desde la línea horizontal hasta el multiplicador */}
-                                <line
-                                  x1={arrow.multX}
-                                  y1={arrowY}
-                                  x2={arrow.multX + 5}
-                                  y2={arrow.multY}
-                                  stroke="#333"
-                                  strokeWidth="1.5"
-                                  markerEnd="url(#arrowhead)"
-                                />
-                                {/* Flecha diagonal desde la línea horizontal hasta el número izquierdo */}
-                                <line
-                                  x1={arrow.num1X}
-                                  y1={arrowY}
-                                  x2={arrow.num1X - 5}
-                                  y2={arrow.num1Y}
-                                  stroke="#333"
-                                  strokeWidth="1.5"
-                                  markerEnd="url(#arrowhead)"
-                                />
-                              </g>
-                            );
-                          } else {
-                            // Segunda flecha: flechas verticales
-                            arrows.push(
-                              <g key={arrow.key}>
-                                {/* Flecha vertical desde la línea horizontal hasta el multiplicador */}
-                                <line
-                                  x1={arrow.multX}
-                                  y1={arrowY}
-                                  x2={arrow.multX}
-                                  y2={arrow.multY}
-                                  stroke="#333"
-                                  strokeWidth="1.5"
-                                  markerEnd="url(#arrowhead)"
-                                />
-                                {/* Flecha vertical desde la línea horizontal hasta el número izquierdo */}
-                                <line
-                                  x1={arrow.num1X}
-                                  y1={arrowY}
-                                  x2={arrow.num1X}
-                                  y2={arrow.num1Y}
-                                  stroke="#333"
-                                  strokeWidth="1.5"
-                                  markerEnd="url(#arrowhead)"
-                                />
-                              </g>
-                            );
-                          }
-                        } else if (arrow.type === 'multi-arrow') {
-                          if (arrow.num1Indices && arrow.num1Indices.length > 0) {
-                            const num1Xs = arrow.num1Indices.map(idx => arrow.startX + (idx * arrow.digitWidth));
-                            const allXs = [...num1Xs, arrow.multX];
-                            const arrowMinX = Math.min(...allXs);
-                            const arrowMaxX = Math.max(...allXs);
-                            
-                            // Dibujar línea horizontal para esta flecha
-                            arrows.push(
-                              <line
-                                key={`horizontal-line-${arrow.key}`}
-                                x1={arrowMinX}
-                                y1={arrowY}
-                                x2={arrowMaxX}
-                                y2={arrowY}
-                                stroke="#333"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                              />
-                            );
-                            
-                            arrows.push(
-                              <g key={arrow.key}>
-                                {/* Flecha vertical desde la línea horizontal hasta el multiplicador */}
-                                <line
-                                  x1={arrow.multX}
-                                  y1={arrowY}
-                                  x2={arrow.multX}
-                                  y2={arrow.multY}
-                                  stroke="#333"
-                                  strokeWidth="1.5"
-                                  markerEnd="url(#arrowhead)"
-                                />
-                                {/* Flechas verticales desde la línea horizontal hasta cada dígito del número izquierdo */}
-                                {num1Xs.map((num1X, idx) => (
-                                  <line
-                                    key={`num1-${idx}`}
-                                    x1={num1X}
-                                    y1={arrowY}
-                                    x2={num1X}
-                                    y2={arrow.num1Y}
-                                    stroke="#333"
-                                    strokeWidth="1.5"
-                                    markerEnd="url(#arrowhead)"
-                                  />
-                                ))}
-                              </g>
-                            );
-                          }
-                        }
-                        tempIndex++;
-                      }
-                    }
-                    
-                    // Calcular puntos de acarreo para cada paso
-                    const carryDots = [];
-                    const LHS = padUTMultiplicand(num1Str, num2Str);
-                    const answer = (num1 * num2).toString().padStart(LHS.length, '0');
-                    
-                    // Calcular acarreos para cada dígito del resultado
-                    for (let stepIdx = LHS.length - 1; stepIdx >= 0; stepIdx--) {
-                      if (stepIdx >= LHS.length - utArrowStep) {
-                        const utStep = calculateUTStep(num1Str, num2Str, stepIdx);
-                        const carry = utStep.carry;
-                        
-                        if (carry > 0 && stepIdx > 0) {
-                          // Calcular posición X del dígito donde se muestra el acarreo
-                          const resultDigitIdx = LHS.length - 1 - stepIdx;
-                          const resultX = startX + (resultDigitIdx * digitWidth);
-                          const carryY = bottomY - 15; // Posición Y para los puntos (arriba del resultado)
-                          
-                          // Renderizar puntos de acarreo (1 punto = acarreo 1, 2 puntos = acarreo 2, 3 puntos = acarreo 3, etc.)
-                          if (carry > 0) {
-                            const dots = [];
-                            const dotSpacing = 4; // Espacio entre puntos
-                            const startX = resultX - (carry - 1) * dotSpacing / 2; // Centrar los puntos
-                            
-                            for (let i = 0; i < carry; i++) {
-                              dots.push(
-                                <circle
-                                  key={`carry-${stepIdx}-${i}`}
-                                  cx={startX + (i * dotSpacing)}
-                                  cy={carryY}
-                                  r="2.5"
-                                  fill="#333"
-                                />
-                              );
-                            }
-                            
-                            carryDots.push(
-                              <g key={`carry-${stepIdx}`}>
-                                {dots}
-                              </g>
-                            );
-                          }
-                        }
-                      }
-                    }
-                    
-                    return (
-                      <>
-                        <defs>
-                          <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="2.5" orient="auto">
-                            <polygon points="0 0, 8 2.5, 0 5" fill="#333" />
-                          </marker>
-                          <marker id="arrowhead-left" markerWidth="8" markerHeight="8" refX="1" refY="2.5" orient="auto">
-                            <polygon points="8 0, 0 2.5, 8 5" fill="#333" />
-                          </marker>
-                        </defs>
-                        {arrows}
-                        {carryDots}
-                      </>
-                    );
-                  })()}
-                </svg>
-              </div>
-              <div className="diagram-bottom-row">
-                {(() => {
-                  const num1 = parseInt(utNumber1) || 123;
-                  const num2 = parseInt(utNumber2) || 45;
-                  const result = (num1 * num2).toString().padStart(5, '0');
-                  return result.split('').map((d, i) => (
-                    <span key={`bottom-${i}`} className="diagram-digit" data-index={i}>{d}</span>
-                  ));
-                })()}
-              </div>
+                      })}
+                    </UTStepBridgeDiagram>
+                    <div className="rule-ut-step-help">
+                      {revealed === 0 ? (
+                        <>
+                          <strong>Preparación</strong>
+                          <p>
+                            {n2} tiene {n2.length} cifra{n2.length === 1 ? '' : 's'}, así que
+                            escribimos {n1} como {paddedLHS.split('').join(' ')}.
+                            Pulsa <b>L</b> para el paso 1 de {totalSteps} (de derecha a izquierda).
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <strong>
+                            Paso {revealed} de {totalSteps}
+                            {utStep && utStep.title ? ` · ${utStep.title}` : ''}
+                          </strong>
+                          {utStep && utStep.calculations.map((calc, idx) => (
+                            <p key={idx}>
+                              {parseMarkupText(calc.text).map((part, partIdx) => (
+                                part.underlined ? (
+                                  <span key={partIdx} className="underlined">{part.text}</span>
+                                ) : (
+                                  <span key={partIdx}>{part.text}</span>
+                                )
+                              ))}
+                              {calc.hint ? <span className="rule-ut-step-hint"> {calc.hint}</span> : null}
+                            </p>
+                          ))}
+                          {utStep && utStep.sumText && (
+                            <p className="rule-ut-step-sum">
+                              {parseMarkupText(utStep.sumText).map((part, partIdx) => (
+                                part.underlined ? (
+                                  <span key={partIdx} className="underlined">{part.text}</span>
+                                ) : (
+                                  <span key={partIdx}>{part.text}</span>
+                                )
+                              ))}
+                              {utStep.sumHint ? ` ${utStep.sumHint}` : ''}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
             <button 
               className="widget-btn widget-btn-right" 
               onClick={() => {
-                if (utArrowStep > 0) {
-                  setUtArrowStep(utArrowStep - 1);
-                }
+                setUtArrowStep((s) => Math.max(s - 1, 0));
               }}
             >
               R
             </button>
           </div>
-
           <div className="rule-ut-inputs">
             <div className="rule-ut-input-box">
               <input
@@ -1952,6 +1683,7 @@ function App() {
                 onChange={(e) => {
                   const value = e.target.value.replace(/[^0-9]/g, '');
                   setUtNumber1(value);
+                  setUtArrowStep(0);
                 }}
                 placeholder="123"
               />
@@ -1964,6 +1696,7 @@ function App() {
                 onChange={(e) => {
                   const value = e.target.value.replace(/[^0-9]/g, '');
                   setUtNumber2(value);
+                  setUtArrowStep(0);
                 }}
                 placeholder="45"
               />
@@ -2117,14 +1850,17 @@ function App() {
       ? Math.max(0, Math.min(currentStep, solutionSteps.length - 1))
       : 0;
     const step = solutionSteps[safeCurrentStep];
-    const num1Str = question.num1.toString().padStart(5, '0');
     const num2Str = question.num2.toString();
     const rawNum1 = question.num1.toString();
-    const isUTStep = step && typeof step.utColumnIndex === 'number';
-    const utVisual =
-      isUTStep && step
-        ? getUTMultiplyPairsForStep(rawNum1, num2Str, step.utColumnIndex)
-        : null;
+    const paddedLHS = padUTMultiplicand(rawNum1, num2Str);
+    const num1Str = gameMode === 'ut' ? paddedLHS : rawNum1.padStart(5, '0');
+    const isUTMode = gameMode === 'ut';
+    const isUTCalcStep = step && !step.isPrep && typeof step.utColumnIndex === 'number';
+    const utVisual = isUTMode
+      ? (isUTCalcStep
+          ? getUTMultiplyPairsForStep(rawNum1, num2Str, step.utColumnIndex)
+          : { paddedLHS, pairs: [] })
+      : null;
 
     return (
       <div className="App">
@@ -2153,6 +1889,9 @@ function App() {
                 {step && typeof step.stepNumber === 'number'
                   ? step.stepNumber
                   : safeCurrentStep + 1}
+                {step && step.title ? (
+                  <span className="solution-step-title"> · {step.title}</span>
+                ) : null}
               </span>
               <button
                 type="button"
@@ -2204,13 +1943,52 @@ function App() {
                 </div>
 
                 <div className="solution-visual solution-visual--reference">
-                  {utVisual && utVisual.pairs.length > 0 ? (
+                  {utVisual ? (
                     <>
-                      <UTStepBridgeDiagram
-                        paddedLHS={utVisual.paddedLHS}
-                        num2Str={num2Str}
-                        pairs={utVisual.pairs}
-                      />
+                      <div className="ut-solution-stage">
+                        <span className="ut-badge ut-badge-l" title="Término izquierdo">L</span>
+                        <UTStepBridgeDiagram
+                          paddedLHS={utVisual.paddedLHS}
+                          num2Str={num2Str}
+                          pairs={utVisual.pairs}
+                        >
+                          {(step.partialResult || paddedLHS.split('')).map((d, i) => {
+                            const totalDigits = (step.partialResult || paddedLHS).length;
+                            const revealed = typeof step.digitsRevealed === 'number' ? step.digitsRevealed : 0;
+                            const positionFromRight = totalDigits - 1 - i;
+                            const visible = d !== '' && d !== undefined && positionFromRight < revealed;
+                            const isCurrentDigit = isUTCalcStep && i === step.utColumnIndex;
+                            const carryValue = step.carry || 0;
+                            const showCarry = carryValue > 0 && isCurrentDigit;
+                            return (
+                              <span
+                                key={i}
+                                className={`ut-res-slot ${visible ? 'ut-res-slot--visible' : 'ut-res-slot--placeholder'}`}
+                              >
+                                <span className="result-digit-container">
+                                  {visible && showCarry && (
+                                    <span className="carry-dots">
+                                      {Array.from({ length: carryValue }, (_, idx) => (
+                                        <span key={idx} className="carry-dot">
+                                          .
+                                        </span>
+                                      ))}
+                                    </span>
+                                  )}
+                                  <span className={`result-digit ${isCurrentDigit ? 'current' : ''}`}>
+                                    {visible ? d : '\u00a0'}
+                                  </span>
+                                </span>
+                              </span>
+                            );
+                          })}
+                        </UTStepBridgeDiagram>
+                        <span className="ut-badge ut-badge-r" title="Término derecho">R</span>
+                      </div>
+                      <div className="ut-operand-boxes">
+                        <div className="ut-operand-box">{question.num1}</div>
+                        <div className="ut-operand-box">{question.num2}</div>
+                      </div>
                     </>
                   ) : (
                     <div className="solution-visual-fallback">
@@ -2237,12 +2015,12 @@ function App() {
                       </div>
                     </div>
                   )}
-                  {!isUTStep && (
+                  {!isUTMode && (
                   <p className="solution-partial-note">
                     <strong>Resultado parcial:</strong> solo aparecen las cifras ya calculadas (de derecha a
                     izquierda). El <strong>resultado final</strong> de la multiplicación es{' '}
                     {(() => {
-                      const { plain, padded } = getProductAnswerVariants(question.num1, question.answer);
+                      const { plain, padded } = getProductAnswerVariants(question.num1, question.num2, question.answer);
                       if (question.operator === '×' && plain !== padded) {
                         return (
                           <>
@@ -2255,53 +2033,10 @@ function App() {
                     ; al avanzar todos los pasos coincidirá con ese número.
                   </p>
                   )}
-                  {!isUTStep && <div className="divider-line divider-line--ut"></div>}
-                  <div className={`result-display ${isUTStep ? 'result-display--ut' : ''}`}>
-                    {step.partialResult && isUTStep && typeof step.utColumnIndex === 'number' ? (
-                      (() => {
-                        const totalDigits = step.partialResult.length;
-                        const stepNumber = step.stepNumber || (safeCurrentStep + 1);
-                        const carryValue = step.carry || 0;
-                        const colActive = step.utColumnIndex;
-                        return (
-                          <div className="ut-partial-answer">
-                            {step.partialResult.map((d, i) => {
-                              const positionFromRight = totalDigits - 1 - i;
-                              const visible = positionFromRight < stepNumber;
-                              const isCurrentDigit = i === colActive;
-                              const showCarry = carryValue > 0 && isCurrentDigit;
-                              return (
-                                <span
-                                  key={i}
-                                  className={`ut-res-slot ${visible ? 'ut-res-slot--visible' : 'ut-res-slot--placeholder'}`}
-                                >
-                                  <span className="result-digit-container">
-                                    {visible && isCurrentDigit && (
-                                      <span className="ut-answer-step-dot" aria-hidden>
-                                        ·
-                                      </span>
-                                    )}
-                                    <span className={`result-digit ${isCurrentDigit ? 'current' : ''}`}>
-                                      {visible ? d : '\u00a0'}
-                                    </span>
-                                    {visible && showCarry && (
-                                      <span className="carry-dots">
-                                        {Array.from({ length: carryValue }, (_, idx) => (
-                                          <span key={idx} className="carry-dot">
-                                            .
-                                          </span>
-                                        ))}
-                                      </span>
-                                    )}
-                                  </span>
-                                </span>
-                              );
-                            })}
-                          </div>
-                        );
-                      })()
-                    ) : (
-                    step.partialResult &&
+                  {!isUTMode && <div className="divider-line divider-line--ut"></div>}
+                  {!isUTMode && (
+                  <div className="result-display">
+                    {step.partialResult &&
                     step.partialResult.map((d, i) => {
                       const totalDigits = step.partialResult.length;
                       const stepNumber = step.stepNumber || (safeCurrentStep + 1);
@@ -2326,14 +2061,14 @@ function App() {
                           )}
                         </span>
                       );
-                    })
-                    )}
+                    })}
                     {step.finalResult && !step.partialResult && (
                       step.finalResult.split('').map((d, i) => (
                         <span key={i} className="result-digit">{d}</span>
                       ))
                     )}
                   </div>
+                  )}
                 </div>
               </>
             )}
@@ -2580,7 +2315,9 @@ function App() {
   // Pantalla de juego
   // Si es modo UT o 1-12, mostrar interfaz con teclado numérico
   if ((gameMode === 'ut' || gameMode === '1-12') && gameActive) {
-    const num1Str = question.num1.toString().padStart(5, '0');
+    const num1Str = gameMode === 'ut'
+      ? padUTMultiplicand(question.num1, question.num2)
+      : question.num1.toString().padStart(5, '0');
     const num2Str = question.num2.toString();
     
     return (
@@ -2619,7 +2356,11 @@ function App() {
           </div>
 
           <div className="ut-problem-area">
-            <div className="ut-game-equation" aria-label="Enunciado">
+            <div
+              className="ut-game-equation"
+              aria-label="Enunciado"
+              style={{ '--eq-units': num1Str.length + num2Str.length + 1 }}
+            >
               <div className="ut-game-lhs">
                 <div className="ut-game-lhs-digits">
                   {num1Str.split('').map((d, i) => (
@@ -2629,58 +2370,54 @@ function App() {
                   ))}
                 </div>
                 <div className="ut-game-lhs-rule" />
-              </div>
-              <span className="problem-operator ut-game-op">×</span>
-              <div className="ut-game-rhs">
-                {num2Str.split('').map((d, i) => (
-                  <span key={i} className="problem-digit">
-                    {d}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="answer-field-container">
-              <div className="answer-digits-row">
-                {/* Espacios vacíos para alinear con los dígitos iniciales del primer número */}
-                {/* El resultado siempre debe tener el mismo número de dígitos que el multiplicando */}
-                {num1Str.split('').slice(0, num1Str.length - userAnswer.length).map((_, i) => (
-                  <span key={`empty-${i}`} className="answer-digit empty-digit"></span>
-                ))}
-                {/* Dígitos del resultado alineados con los últimos dígitos del primer número */}
-                {/* Los dígitos se muestran en el orden en que se escribieron, pero alineados desde la derecha */}
-                {userAnswer.split('').map((d, i) => {
-                  // La posición desde la derecha (0 = último dígito, 1 = penúltimo, etc.)
-                  const positionFromRight = userAnswer.length - 1 - i;
-                  const carryCount = carryDots[positionFromRight] || 0;
-                  return (
-                    <span key={i} className="answer-digit-container" style={{ position: 'relative', display: 'inline-block' }}>
-                      {/* Mostrar puntos de acarreo arriba del dígito */}
-                      {carryCount > 0 && (
-                        <span className="user-carry-dots" style={{
-                          position: 'absolute',
-                          top: '-12px',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          display: 'flex',
-                          gap: '3px',
-                          justifyContent: 'center'
-                        }}>
-                          {Array.from({ length: carryCount }, (_, idx) => (
-                            <span key={idx} style={{
-                              display: 'inline-block',
-                              width: '4px',
-                              height: '4px',
-                              borderRadius: '50%',
-                              backgroundColor: '#333',
-                              margin: '0 1px'
-                            }}></span>
-                          ))}
+                <div className="answer-field-container">
+                  <div className="answer-digits-row">
+                    {num1Str.split('').slice(0, num1Str.length - userAnswer.length).map((_, i) => (
+                      <span key={`empty-${i}`} className="answer-digit empty-digit"></span>
+                    ))}
+                    {userAnswer.split('').map((d, i) => {
+                      const positionFromRight = userAnswer.length - 1 - i;
+                      const carryCount = carryDots[positionFromRight] || 0;
+                      return (
+                        <span key={i} className="answer-digit-container" style={{ position: 'relative', display: 'inline-block' }}>
+                          {carryCount > 0 && (
+                            <span className="user-carry-dots" style={{
+                              position: 'absolute',
+                              top: '-12px',
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              display: 'flex',
+                              gap: '3px',
+                              justifyContent: 'center'
+                            }}>
+                              {Array.from({ length: carryCount }, (_, idx) => (
+                                <span key={idx} style={{
+                                  display: 'inline-block',
+                                  width: '4px',
+                                  height: '4px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#333',
+                                  margin: '0 1px'
+                                }}></span>
+                              ))}
+                            </span>
+                          )}
+                          <span className="answer-digit">{d}</span>
                         </span>
-                      )}
-                      <span className="answer-digit">{d}</span>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              <div className="ut-game-rhs-block">
+                <span className="problem-operator ut-game-op">×</span>
+                <div className="ut-game-rhs">
+                  {num2Str.split('').map((d, i) => (
+                    <span key={i} className="problem-digit">
+                      {d}
                     </span>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             </div>
           </div>

@@ -15,6 +15,7 @@ class SolutionScreen extends StatelessWidget {
     final state = context.watch<AppState>();
     if (state.solutionSteps.isEmpty) {
       return const Scaffold(
+        backgroundColor: AppTheme.solutionBg,
         body: Center(child: Text('Sin pasos de solución')),
       );
     }
@@ -23,9 +24,15 @@ class SolutionScreen extends StatelessWidget {
     final step = state.solutionSteps[safeStep];
     final rawNum1 = state.question.num1.toString();
     final num2Str = state.question.num2.toString();
-    final isUT = step.utColumnIndex != null;
-    final utVisual = isUT
-        ? getUTMultiplyPairsForStep(rawNum1, num2Str, step.utColumnIndex!)
+    final paddedLHS = padUTMultiplicand(rawNum1, num2Str);
+    final isPrep = step.isPrep;
+    final isUt = state.gameMode == GameMode.ut;
+    final utVisual = isUt
+        ? (isPrep
+            ? (paddedLHS: paddedLHS, pairs: <UtPair>[])
+            : (step.utColumnIndex != null
+                ? getUTMultiplyPairsForStep(rawNum1, num2Str, step.utColumnIndex!)
+                : null))
         : null;
 
     return Scaffold(
@@ -33,25 +40,37 @@ class SolutionScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            _header(context, state, step, safeStep),
+            _header(state, step, safeStep),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ...step.calculations.map(
                       (c) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: MarkupText(
-                          c.text,
-                          style: const TextStyle(color: Color(0xFFeaeaea), fontSize: 16),
-                          underlinedStyle: const TextStyle(
-                            color: Color(0xFFeaeaea),
-                            fontSize: 16,
-                            decoration: TextDecoration.underline,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Column(
+                          children: [
+                            MarkupText(
+                              c.text,
+                              style: const TextStyle(color: Color(0xFFeaeaea), fontSize: 16),
+                              underlinedStyle: const TextStyle(
+                                color: AppTheme.currentAmber,
+                                fontSize: 16,
+                                decoration: TextDecoration.underline,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (c.hint != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  c.hint!,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.white.withOpacity(0.62), fontSize: 13),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ),
@@ -59,25 +78,64 @@ class SolutionScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       MarkupText(
                         step.sumText!,
-                        style: const TextStyle(color: Color(0xFFeaeaea), fontSize: 16),
+                        style: const TextStyle(color: Color(0xFFeaeaea), fontSize: 16, fontWeight: FontWeight.w700),
                         underlinedStyle: const TextStyle(
-                          color: Color(0xFFeaeaea),
+                          color: AppTheme.currentAmber,
                           fontSize: 16,
                           decoration: TextDecoration.underline,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      if (step.sumHint != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            step.sumHint!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.white.withOpacity(0.62), fontSize: 13),
+                          ),
+                        ),
                     ],
-                    const SizedBox(height: 24),
-                    if (utVisual != null && utVisual.pairs.isNotEmpty)
-                      UtBridgeDiagram(
-                        paddedLHS: utVisual.paddedLHS,
-                        num2Str: num2Str,
-                        pairs: utVisual.pairs,
+                    const SizedBox(height: 22),
+                    if (utVisual != null) ...[
+                      Row(
+                        children: [
+                          _badge('L', AppTheme.badgeL),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: UtBridgeDiagram(
+                              paddedLHS: utVisual.paddedLHS,
+                              num2Str: num2Str,
+                              pairs: utVisual.pairs,
+                              resultCells: List.generate(paddedLHS.length, (i) {
+                                final revealed = step.digitsRevealed;
+                                final posFromRight = paddedLHS.length - 1 - i;
+                                final d = i < step.partialResult.length ? step.partialResult[i] : null;
+                                final visible = d != null && posFromRight < revealed;
+                                final isCurrent = !isPrep && i == step.utColumnIndex;
+                                return UtResultDigit(
+                                  text: visible ? '$d' : '',
+                                  current: isCurrent && visible,
+                                  carry: (isCurrent && visible) ? step.carry : 0,
+                                );
+                              }),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _badge('R', AppTheme.badgeR),
+                        ],
                       ),
-                    const SizedBox(height: 16),
-                    if (isUT && step.partialResult.isNotEmpty)
-                      _partialAnswer(step),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(child: _operandBox('${state.question.num1}')),
+                          const SizedBox(width: 12),
+                          Expanded(child: _operandBox('${state.question.num2}')),
+                        ],
+                      ),
+                    ] else ...[
+                      _tableFallback(rawNum1.padLeft(5, '0'), num2Str, step),
+                    ],
                   ],
                 ),
               ),
@@ -86,13 +144,14 @@ class SolutionScreen extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: SizedBox(
                 width: double.infinity,
-                child: OutlinedButton(
+                child: TextButton(
                   onPressed: state.closeSolution,
-                  style: OutlinedButton.styleFrom(
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFF4b5563),
                     foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white54),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text('Cerrar'),
+                  child: const Text('CERRAR', style: TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ),
             ),
@@ -102,41 +161,129 @@ class SolutionScreen extends StatelessWidget {
     );
   }
 
-  Widget _header(
-    BuildContext context,
-    AppState state,
-    SolutionStep step,
-    int safeStep,
-  ) {
+  Widget _tableFallback(String num1Str, String num2Str, SolutionStep step) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: num1Str.split('').map((d) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(d, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w700)),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('×', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
+            const SizedBox(width: 12),
+            ...num2Str.split('').map((d) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(d, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w700)),
+              );
+            }),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          alignment: WrapAlignment.center,
+          children: List.generate(step.partialResult.length, (i) {
+            final total = step.partialResult.length;
+            final posFromRight = total - 1 - i;
+            if (posFromRight >= step.stepNumber) return const SizedBox.shrink();
+            final d = step.partialResult[i];
+            final isCurrent = posFromRight == 0;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Column(
+                children: [
+                  if (isCurrent && step.carry > 0)
+                    Text('·' * step.carry, style: const TextStyle(color: AppTheme.currentAmber)),
+                  Text(
+                    d == null ? '' : '$d',
+                    style: TextStyle(
+                      color: isCurrent ? AppTheme.currentAmber : Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      decoration: isCurrent ? TextDecoration.underline : null,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _badge(String t, Color c) {
     return Container(
-      width: double.infinity,
-      color: const Color(0xFF0f3460),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      width: 36,
+      height: 36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(6)),
+      child: Text(t, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+    );
+  }
+
+  Widget _operandBox(String n) {
+    return Container(
+      height: 56,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFFececec),
+        border: Border.all(color: Colors.black26),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        n,
+        style: const TextStyle(color: Colors.black, fontSize: 28, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+
+  Widget _header(AppState state, SolutionStep step, int safeStep) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Column(
         children: [
-          const Text(
-            'Solución paso a paso',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Solución paso a paso',
+              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+            ),
           ),
           const SizedBox(height: 8),
-          Container(height: 3, color: AppTheme.accent),
+          Container(
+            height: 3,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(colors: [Color(0xFF3b82f6), Color(0xFF60a5fa)]),
+            ),
+          ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (safeStep > 0)
-                _bfBtn('B', state.prevStep)
-              else
-                const SizedBox(width: 48),
+              _bfBtn('B', safeStep > 0 ? state.prevStep : null),
               Expanded(
-                child: Text(
-                  'Paso ${step.stepNumber}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Column(
+                  children: [
+                    Text(
+                      'Paso ${step.stepNumber}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    if (step.title != null)
+                      Text(
+                        step.title!,
+                        style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
+                      ),
+                  ],
                 ),
               ),
               _bfBtn(
@@ -155,62 +302,22 @@ class SolutionScreen extends StatelessWidget {
       width: 48,
       height: 48,
       child: Material(
-        color: onTap != null ? Colors.white.withOpacity(0.15) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        color: onTap != null ? const Color(0xFF4b5563) : Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
           child: Center(
             child: Text(
               label,
               style: TextStyle(
                 color: onTap != null ? Colors.white : Colors.white38,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w800,
                 fontSize: 18,
               ),
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _partialAnswer(SolutionStep step) {
-    final total = step.partialResult.length;
-    final stepNumber = step.stepNumber;
-    final colActive = step.utColumnIndex!;
-    final carryValue = step.carry;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(total, (i) {
-        final posFromRight = total - 1 - i;
-        final visible = posFromRight < stepNumber;
-        final isCurrent = i == colActive;
-        final showCarry = carryValue > 0 && isCurrent;
-
-        return SizedBox(
-          width: 28,
-          child: Column(
-            children: [
-              if (visible && isCurrent)
-                const Text('·', style: TextStyle(color: Color(0xFFf093fb), fontSize: 20))
-              else
-                const SizedBox(height: 20),
-              Text(
-                visible ? '${step.partialResult[i]}' : ' ',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: isCurrent && visible ? const Color(0xFFf093fb) : const Color(0xFFeaeaea),
-                ),
-              ),
-              if (visible && showCarry)
-                Text('.' * carryValue, style: const TextStyle(color: Color(0xFFf093fb))),
-            ],
-          ),
-        );
-      }),
     );
   }
 }
