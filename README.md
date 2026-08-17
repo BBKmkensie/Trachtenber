@@ -6,7 +6,7 @@
 
 | Versión | Enlace |
 |---------|--------|
-| **1.0.0** | [Descargar Trachtenberg-1.0.0.apk](https://github.com/BBKmkensie/Trachtenber/raw/main/releases/Trachtenberg-1.0.0.apk) |
+| **1.0.0** (app actual) | [Descargar Trachtenberg-1.0.0.apk](https://github.com/BBKmkensie/Trachtenber/raw/main/releases/Trachtenberg-1.0.0.apk) |
 
 También en **[Releases](https://github.com/BBKmkensie/Trachtenber/releases)** (versiones futuras con etiqueta `v1.0.0`, etc.).
 
